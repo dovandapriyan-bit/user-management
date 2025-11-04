@@ -17,6 +17,10 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
     <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
     
+    <!-- Leaflet Draw untuk drag & drop -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
+    
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
     
@@ -24,6 +28,9 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+    
+    <!-- SheetJS untuk Excel export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
     <style>
         /* Kustomisasi Leaflet agar sesuai Tailwind */
@@ -149,6 +156,99 @@
         .search-result-detail {
             @apply text-sm text-gray-600;
         }
+        
+        /* Custom styles for session timeout warning */
+        .session-warning {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            padding: 16px;
+            max-width: 350px;
+        }
+        
+        /* Custom styles for capacity indicators */
+        .capacity-indicator {
+            height: 8px;
+            border-radius: 4px;
+            background-color: #e5e7eb;
+            overflow: hidden;
+        }
+        .capacity-bar {
+            height: 100%;
+            transition: width 0.3s ease;
+        }
+        .capacity-low {
+            background-color: #10b981;
+        }
+        .capacity-medium {
+            background-color: #f59e0b;
+        }
+        .capacity-high {
+            background-color: #ef4444;
+        }
+        
+        /* Custom styles for drag marker */
+        .marker-dragging {
+            opacity: 0.7;
+        }
+        
+        /* Custom styles for connection lines */
+        .connection-line {
+            stroke: #3b82f6;
+            stroke-width: 3;
+            stroke-opacity: 0.7;
+            fill: none;
+        }
+        .connection-line-feeder {
+            stroke: #10b981;
+        }
+        .connection-line-distribution {
+            stroke: #f59e0b;
+        }
+        .connection-line-customer {
+            stroke: #8b5cf6;
+            stroke-dasharray: 5, 5;
+        }
+        
+        /* Custom styles for toggle buttons */
+        .toggle-button {
+            @apply px-4 py-2 rounded-md text-white font-medium transition-all duration-300 transform hover:scale-105;
+        }
+        .toggle-button.active {
+            @apply shadow-lg;
+        }
+        .toggle-button.inactive {
+            @apply opacity-60;
+        }
+        
+        /* Custom styles for dashboard cards */
+        .dashboard-card {
+            @apply bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 cursor-pointer;
+        }
+        .dashboard-card:hover {
+            @apply transform -translate-y-1;
+        }
+        
+        /* Custom styles for inventory management */
+        .inventory-item {
+            @apply flex items-center justify-between p-3 border-b border-gray-200;
+        }
+        .inventory-item:last-child {
+            @apply border-b-0;
+        }
+        .stock-low {
+            @apply text-red-600 font-medium;
+        }
+        .stock-medium {
+            @apply text-yellow-600 font-medium;
+        }
+        .stock-high {
+            @apply text-green-600 font-medium;
+        }
     </style>
 </head>
 <body class="bg-gray-100 font-sans antialiased">
@@ -226,6 +326,9 @@
                 <a href="#" class="nav-link flex items-center px-6 py-3 text-gray-700 hover:bg-gray-100" data-page="table" data-entity="Karyawan">
                     <i data-lucide="users" class="w-5 h-5 mr-3"></i> Karyawan
                 </a>
+                <a href="#" class="nav-link flex items-center px-6 py-3 text-gray-700 hover:bg-gray-100" data-page="inventory">
+                    <i data-lucide="package-2" class="w-5 h-5 mr-3"></i> Inventory
+                </a>
                 <a href="#" class="nav-link flex items-center px-6 py-3 text-gray-700 hover:bg-gray-100" data-page="pengaturan">
                     <i data-lucide="settings" class="w-5 h-5 mr-3"></i> Pengaturan
                 </a>
@@ -243,11 +346,6 @@
                     <button id="sidebar-open-btn" class="p-2 -ml-2 rounded-md sm:hidden">
                         <i data-lucide="menu" class="w-6 h-6"></i>
                     </button>
-                    <!-- Search bar (placeholder) -->
-                    <div class="relative hidden sm:block">
-                        <input type="text" id="global-search" placeholder="Cari aset..." class="px-4 py-2 border rounded-full w-64 bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <i data-lucide="search" class="w-4 h-4 absolute top-1/2 right-4 transform -translate-y-1/2 text-gray-400"></i>
-                    </div>
                     
                     <div class="flex items-center space-x-4">
                         <div id="online-status" class="flex items-center space-x-2">
@@ -275,9 +373,14 @@
                 
                 <!-- Page: Dashboard -->
                 <div id="page-dashboard" class="page-content">
-                    <h2 class="text-3xl font-bold mb-6 text-gray-800">Dashboard</h2>
+                    <div class="flex items-center justify-between mb-6">
+                        <h2 class="text-3xl font-bold text-gray-800">Dashboard</h2>
+                        <div class="text-sm text-gray-600">
+                            <span id="current-time" class="font-medium"></span>
+                        </div>
+                    </div>
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                        <div class="bg-white p-6 rounded-lg shadow-md">
+                        <div class="dashboard-card" data-entity="ODP">
                             <div class="flex items-center justify-between">
                                 <div>
                                     <div class="text-sm font-medium text-gray-500">Total ODP</div>
@@ -286,7 +389,7 @@
                                 <i data-lucide="box" class="w-10 h-10 text-blue-500"></i>
                             </div>
                         </div>
-                        <div class="bg-white p-6 rounded-lg shadow-md">
+                        <div class="dashboard-card" data-entity="Pelanggan">
                             <div class="flex items-center justify-between">
                                 <div>
                                     <div class="text-sm font-medium text-gray-500">Total Pelanggan</div>
@@ -295,16 +398,16 @@
                                 <i data-lucide="users" class="w-10 h-10 text-green-500"></i>
                             </div>
                         </div>
-                        <div class="bg-white p-6 rounded-lg shadow-md">
+                        <div class="dashboard-card" data-entity="OLT">
                             <div class="flex items-center justify-between">
                                 <div>
-                                    <div class="text-sm font-medium text-gray-500">Kapasitas Port</div>
-                                    <div id="stat-ports" class="text-3xl font-bold text-gray-900">0/0</div>
+                                    <div class="text-sm font-medium text-gray-500">Total OLT</div>
+                                    <div id="stat-olt" class="text-3xl font-bold text-gray-900">0</div>
                                 </div>
-                                <i data-lucide="pie-chart" class="w-10 h-10 text-yellow-500"></i>
+                                <i data-lucide="server" class="w-10 h-10 text-red-500"></i>
                             </div>
                         </div>
-                        <div class="bg-white p-6 rounded-lg shadow-md">
+                        <div class="dashboard-card" data-entity="Karyawan">
                             <div class="flex items-center justify-between">
                                 <div>
                                     <div class="text-sm font-medium text-gray-500">Karyawan</div>
@@ -314,6 +417,47 @@
                             </div>
                         </div>
                     </div>
+                    
+                    <!-- Network Status Card -->
+                    <div class="mt-8 bg-white p-6 rounded-lg shadow-md">
+                        <h3 class="text-xl font-semibold mb-4">Status Jaringan</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <div>
+                                <div class="text-sm font-medium text-gray-500 mb-2">Utilisasi Port ODP</div>
+                                <div class="flex items-center">
+                                    <div class="flex-1 mr-2">
+                                        <div class="capacity-indicator">
+                                            <div id="odp-capacity-bar" class="capacity-bar capacity-low" style="width: 0%"></div>
+                                        </div>
+                                    </div>
+                                    <span id="odp-capacity-text" class="text-sm font-medium">0%</span>
+                                </div>
+                            </div>
+                            <div>
+                                <div class="text-sm font-medium text-gray-500 mb-2">Utilisasi Port ODC</div>
+                                <div class="flex items-center">
+                                    <div class="flex-1 mr-2">
+                                        <div class="capacity-indicator">
+                                            <div id="odc-capacity-bar" class="capacity-bar capacity-low" style="width: 0%"></div>
+                                        </div>
+                                    </div>
+                                    <span id="odc-capacity-text" class="text-sm font-medium">0%</span>
+                                </div>
+                            </div>
+                            <div>
+                                <div class="text-sm font-medium text-gray-500 mb-2">Utilisasi Port OLT</div>
+                                <div class="flex items-center">
+                                    <div class="flex-1 mr-2">
+                                        <div class="capacity-indicator">
+                                            <div id="olt-capacity-bar" class="capacity-bar capacity-low" style="width: 0%"></div>
+                                        </div>
+                                    </div>
+                                    <span id="olt-capacity-text" class="text-sm font-medium">0%</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
                     <div class="mt-8 bg-white p-6 rounded-lg shadow-md">
                         <h3 class="text-xl font-semibold mb-4">Antrian Sinkronisasi Offline</h3>
                         <div id="offline-queue-list" class="text-gray-600">Tidak ada item dalam antrian.</div>
@@ -334,12 +478,12 @@
                     <!-- Filter Container -->
                     <div class="filter-container">
                         <div class="flex flex-wrap gap-2 mb-4">
-                            <button id="toggle-olt" class="filter-button bg-red-500 active">OLT</button>
-                            <button id="toggle-odc" class="filter-button bg-blue-500 active">ODC</button>
-                            <button id="toggle-odp" class="filter-button bg-green-500 active">ODP</button>
-                            <button id="toggle-pelanggan" class="filter-button bg-yellow-500 active">Pelanggan</button>
-                            <button id="toggle-connections" class="filter-button bg-purple-500 inactive">Koneksi</button>
-                            <button id="clear-connections" class="filter-button bg-gray-500 inactive">Hapus Koneksi</button>
+                            <button id="toggle-olt" class="toggle-button bg-red-500 active">OLT</button>
+                            <button id="toggle-odc" class="toggle-button bg-blue-500 active">ODC</button>
+                            <button id="toggle-odp" class="toggle-button bg-green-500 active">ODP</button>
+                            <button id="toggle-pelanggan" class="toggle-button bg-yellow-500 active">Pelanggan</button>
+                            <button id="toggle-connections" class="toggle-button bg-purple-500 inactive">Koneksi</button>
+                            <button id="clear-connections" class="toggle-button bg-gray-500 inactive">Hapus Koneksi</button>
                         </div>
                         
                         <!-- Search Filters -->
@@ -375,105 +519,6 @@
                             </div>
                         </div>
                         
-                        <!-- Device Specific Filters -->
-                        <div class="mt-4">
-                            <!-- OLT Filter -->
-                            <div id="olt-filter" class="filter-section hidden">
-                                <h3 class="filter-title">Filter OLT</h3>
-                                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                    <div>
-                                        <label class="block text-sm font-medium text-gray-700 mb-1">Jenis OLT</label>
-                                        <input type="text" id="olt-type-filter" class="filter-input" placeholder="Contoh: GPON">
-                                    </div>
-                                    <div>
-                                        <label class="block text-sm font-medium text-gray-700 mb-1">Type OLT</label>
-                                        <input type="text" id="olt-name-filter" class="filter-input" placeholder="Contoh: ZTE">
-                                    </div>
-                                    <div>
-                                        <label class="block text-sm font-medium text-gray-700 mb-1">SN OLT</label>
-                                        <input type="text" id="olt-sn-filter" class="filter-input" placeholder="Contoh: HWTX123456789">
-                                    </div>
-                                </div>
-                                <div class="mt-2">
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">Pilih OLT</label>
-                                    <select id="olt-select-filter" class="filter-select">
-                                        <option value="">Pilih OLT</option>
-                                    </select>
-                                </div>
-                            </div>
-                            
-                            <!-- ODC Filter -->
-                            <div id="odc-filter" class="filter-section hidden">
-                                <h3 class="filter-title">Filter ODC</h3>
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div>
-                                        <label class="block text-sm font-medium text-gray-700 mb-1">Wilayah</label>
-                                        <select id="odc-region-filter" class="filter-select">
-                                            <option value="">Semua Wilayah</option>
-                                        </select>
-                                    </div>
-                                    <div>
-                                        <label class="block text-sm font-medium text-gray-700 mb-1">Sektor</label>
-                                        <select id="odc-sector-filter" class="filter-select">
-                                            <option value="">Semua Sektor</option>
-                                        </select>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <!-- ODP Filter -->
-                            <div id="odp-filter" class="filter-section hidden">
-                                <h3 class="filter-title">Filter ODP</h3>
-                                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                    <div>
-                                        <label class="block text-sm font-medium text-gray-700 mb-1">Wilayah</label>
-                                        <select id="odp-region-filter" class="filter-select">
-                                            <option value="">Semua Wilayah</option>
-                                        </select>
-                                    </div>
-                                    <div>
-                                        <label class="block text-sm font-medium text-gray-700 mb-1">Sektor</label>
-                                        <select id="odp-sector-filter" class="filter-select">
-                                            <option value="">Semua Sektor</option>
-                                        </select>
-                                    </div>
-                                    <div>
-                                        <label class="block text-sm font-medium text-gray-700 mb-1">Nama ODP</label>
-                                        <input type="text" id="odp-name-filter" class="filter-input" placeholder="Contoh: ODP-SBY-FA/001">
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <!-- Pelanggan Filter -->
-                            <div id="pelanggan-filter" class="filter-section hidden">
-                                <h3 class="filter-title">Filter Pelanggan</h3>
-                                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                    <div>
-                                        <label class="block text-sm font-medium text-gray-700 mb-1">No. Internet/Pelanggan</label>
-                                        <input type="text" id="pelanggan-number-filter" class="filter-input" placeholder="Contoh: PLG-2024-01-001">
-                                    </div>
-                                    <div>
-                                        <label class="block text-sm font-medium text-gray-700 mb-1">SN ONT</label>
-                                        <input type="text" id="pelanggan-ont-filter" class="filter-input" placeholder="Contoh: ONT123456789">
-                                    </div>
-                                    <div>
-                                        <label class="block text-sm font-medium text-gray-700 mb-1">ODP</label>
-                                        <select id="pelanggan-odp-filter" class="filter-select">
-                                            <option value="">Semua ODP</option>
-                                        </select>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <!-- Search Results -->
-                        <div id="search-results" class="mt-4 hidden">
-                            <h3 class="filter-title">Hasil Pencarian</h3>
-                            <div id="search-results-list" class="max-h-40 overflow-y-auto border border-gray-200 rounded-md">
-                                <!-- Search results will be populated here -->
-                            </div>
-                        </div>
-                        
                         <!-- Apply Filters Button -->
                         <div class="mt-4 flex justify-end">
                             <button id="apply-filters" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 mr-2">Terapkan Filter</button>
@@ -488,10 +533,20 @@
                 <div id="page-table" class="page-content hidden">
                     <div class="flex items-center justify-between mb-6">
                         <h2 id="table-title" class="text-3xl font-bold text-gray-800">Manajemen Aset</h2>
-                        <button id="add-new-button" class="bg-blue-600 text-white font-bold py-2 px-4 rounded-lg flex items-center space-x-2 hover:bg-blue-700">
-                            <i data-lucide="plus" class="w-5 h-5"></i>
-                            <span>Tambah Baru</span>
-                        </button>
+                        <div class="flex space-x-2">
+                            <button id="import-button" class="bg-green-600 text-white font-bold py-2 px-4 rounded-lg flex items-center space-x-2 hover:bg-green-700">
+                                <i data-lucide="upload" class="w-5 h-5"></i>
+                                <span>Import</span>
+                            </button>
+                            <button id="export-button" class="bg-green-600 text-white font-bold py-2 px-4 rounded-lg flex items-center space-x-2 hover:bg-green-700">
+                                <i data-lucide="download" class="w-5 h-5"></i>
+                                <span>Export</span>
+                            </button>
+                            <button id="add-new-button" class="bg-blue-600 text-white font-bold py-2 px-4 rounded-lg flex items-center space-x-2 hover:bg-blue-700">
+                                <i data-lucide="plus" class="w-5 h-5"></i>
+                                <span>Tambah Baru</span>
+                            </button>
+                        </div>
                     </div>
                     
                     <!-- Search and Filter Section -->
@@ -499,18 +554,6 @@
                         <div class="flex flex-col md:flex-row gap-4">
                             <div class="flex-1">
                                 <input type="text" id="table-search" placeholder="Cari data..." class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                            </div>
-                            <div class="flex gap-2">
-                                <select id="table-filter" class="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                                    <option value="">Semua Status</option>
-                                    <option value="active">Aktif</option>
-                                    <option value="pending">Pending</option>
-                                    <option value="inactive">Nonaktif</option>
-                                </select>
-                                <button id="export-button" class="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 flex items-center space-x-2">
-                                    <i data-lucide="download" class="w-4 h-4"></i>
-                                    <span>Export</span>
-                                </button>
                             </div>
                         </div>
                     </div>
@@ -540,6 +583,65 @@
                                 <button id="next-page" class="px-3 py-1 border border-gray-300 rounded-md hover:bg-gray-100 disabled:opacity-50" disabled>
                                     <i data-lucide="chevron-right" class="w-4 h-4"></i>
                                 </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Page: Inventory -->
+                <div id="page-inventory" class="page-content hidden">
+                    <h2 class="text-3xl font-bold mb-6 text-gray-800">Inventory Management</h2>
+                    
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <!-- ONT Devices -->
+                        <div class="bg-white p-6 rounded-lg shadow-md">
+                            <div class="flex items-center justify-between mb-4">
+                                <h3 class="text-xl font-semibold">Perangkat ONT</h3>
+                                <button id="add-ont-btn" class="bg-blue-600 text-white p-2 rounded-md hover:bg-blue-700">
+                                    <i data-lucide="plus" class="w-4 h-4"></i>
+                                </button>
+                            </div>
+                            <div id="ont-inventory-list" class="space-y-2">
+                                <!-- ONT inventory items will be populated here -->
+                            </div>
+                        </div>
+                        
+                        <!-- Cables -->
+                        <div class="bg-white p-6 rounded-lg shadow-md">
+                            <div class="flex items-center justify-between mb-4">
+                                <h3 class="text-xl font-semibold">Kabel</h3>
+                                <button id="add-cable-btn" class="bg-blue-600 text-white p-2 rounded-md hover:bg-blue-700">
+                                    <i data-lucide="plus" class="w-4 h-4"></i>
+                                </button>
+                            </div>
+                            <div id="cable-inventory-list" class="space-y-2">
+                                <!-- Cable inventory items will be populated here -->
+                            </div>
+                        </div>
+                        
+                        <!-- Splitters -->
+                        <div class="bg-white p-6 rounded-lg shadow-md">
+                            <div class="flex items-center justify-between mb-4">
+                                <h3 class="text-xl font-semibold">Splitter</h3>
+                                <button id="add-splitter-btn" class="bg-blue-600 text-white p-2 rounded-md hover:bg-blue-700">
+                                    <i data-lucide="plus" class="w-4 h-4"></i>
+                                </button>
+                            </div>
+                            <div id="splitter-inventory-list" class="space-y-2">
+                                <!-- Splitter inventory items will be populated here -->
+                            </div>
+                        </div>
+                        
+                        <!-- Other Materials -->
+                        <div class="bg-white p-6 rounded-lg shadow-md">
+                            <div class="flex items-center justify-between mb-4">
+                                <h3 class="text-xl font-semibold">Material Lainnya</h3>
+                                <button id="add-material-btn" class="bg-blue-600 text-white p-2 rounded-md hover:bg-blue-700">
+                                    <i data-lucide="plus" class="w-4 h-4"></i>
+                                </button>
+                            </div>
+                            <div id="material-inventory-list" class="space-y-2">
+                                <!-- Material inventory items will be populated here -->
                             </div>
                         </div>
                     </div>
@@ -654,6 +756,26 @@
                             </div>
                         </div>
 
+                        <!-- Session Management -->
+                        <div class="bg-white p-6 rounded-lg shadow-md lg:col-span-2">
+                            <h3 class="text-xl font-semibold mb-4">Manajemen Sesi</h3>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Timeout Sesi (menit)</label>
+                                    <input type="number" id="session-timeout" value="15" min="5" max="60" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Warning Timeout (menit)</label>
+                                    <input type="number" id="warning-timeout" value="13" min="1" max="59" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                </div>
+                                <div class="flex items-end">
+                                    <button id="save-session-settings" class="bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700">
+                                        Simpan Pengaturan
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
                         <!-- Ubah Password -->
                         <div class="bg-white p-6 rounded-lg shadow-md lg:col-span-2">
                             <h3 class="text-xl font-semibold mb-4">Ubah Password</h3>
@@ -683,6 +805,48 @@
                 <!-- Page: Audit Log -->
                 <div id="page-audit" class="page-content hidden">
                     <h2 class="text-3xl font-bold mb-6 text-gray-800">Audit Log</h2>
+                    
+                    <!-- Filter Section -->
+                    <div class="bg-white p-4 rounded-lg shadow-md mb-4">
+                        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Tanggal</label>
+                                <input type="date" id="audit-date-filter" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Pengguna</label>
+                                <select id="audit-user-filter" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                    <option value="">Semua Pengguna</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Jenis Aksi</label>
+                                <select id="audit-action-filter" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                    <option value="">Semua Aksi</option>
+                                    <option value="create">Tambah</option>
+                                    <option value="update">Edit</option>
+                                    <option value="delete">Hapus</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Entitas</label>
+                                <select id="audit-entity-filter" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                    <option value="">Semua Entitas</option>
+                                    <option value="OLT">OLT</option>
+                                    <option value="ODC">ODC</option>
+                                    <option value="ODP">ODP</option>
+                                    <option value="Pelanggan">Pelanggan</option>
+                                    <option value="Paket">Paket</option>
+                                    <option value="Karyawan">Karyawan</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="mt-4 flex justify-end">
+                            <button id="apply-audit-filters" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 mr-2">Terapkan Filter</button>
+                            <button id="reset-audit-filters" class="bg-gray-300 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-400">Reset Filter</button>
+                        </div>
+                    </div>
+                    
                     <div class="bg-white p-6 rounded-lg shadow-md">
                         <div class="overflow-x-auto">
                             <table class="w-full min-w-max">
@@ -757,9 +921,111 @@
         </div>
     </div>
 
-    <!-- 6. NOTIFICATION TOAST -->
+    <!-- 6. MODAL IMPORT -->
+    <div id="import-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 z-40 flex items-center justify-center p-4 hidden">
+        <div class="bg-white p-8 rounded-lg shadow-2xl w-full max-w-md">
+            <div class="flex items-center justify-between mb-6">
+                <h2 class="text-2xl font-bold text-gray-800">Import Data</h2>
+                <button type="button" id="close-import-modal-button" class="p-1 text-gray-400 hover:text-gray-600">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
+            </div>
+            
+            <div class="mb-6">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Pilih File</label>
+                <input type="file" id="import-file" accept=".csv,.xlsx,.xls" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <p class="text-xs text-gray-500 mt-1">Format yang didukung: CSV, Excel (.xlsx, .xls)</p>
+            </div>
+            
+            <div class="mb-6">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Jenis Entitas</label>
+                <select id="import-entity-type" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="">Pilih Jenis Entitas</option>
+                    <option value="OLT">OLT</option>
+                    <option value="ODC">ODC</option>
+                    <option value="ODP">ODP</option>
+                    <option value="Pelanggan">Pelanggan</option>
+                    <option value="Paket">Paket</option>
+                    <option value="Karyawan">Karyawan</option>
+                </select>
+            </div>
+            
+            <div class="flex justify-end space-x-4">
+                <button type="button" id="cancel-import-button" class="bg-gray-200 text-gray-700 font-bold py-2 px-6 rounded-lg hover:bg-gray-300">
+                    Batal
+                </button>
+                <button type="button" id="process-import-button" class="bg-blue-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-blue-700">
+                    Import
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 7. MODAL INVENTORY -->
+    <div id="inventory-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 z-40 flex items-center justify-center p-4 hidden">
+        <form id="inventory-form" class="bg-white p-8 rounded-lg shadow-2xl w-full max-w-md">
+            <div class="flex items-center justify-between mb-6">
+                <h2 id="inventory-form-title" class="text-2xl font-bold text-gray-800">Tambah Item Inventory</h2>
+                <button type="button" id="close-inventory-modal-button" class="p-1 text-gray-400 hover:text-gray-600">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
+            </div>
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Jenis Item</label>
+                    <select id="inventory-type" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                        <option value="">Pilih Jenis</option>
+                        <option value="ONT">ONT</option>
+                        <option value="Kabel">Kabel</option>
+                        <option value="Splitter">Splitter</option>
+                        <option value="Material">Material Lainnya</option>
+                    </select>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Nama Item</label>
+                    <input type="text" id="inventory-name" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Stok Minimum</label>
+                    <input type="number" id="inventory-min-stock" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Stok Saat Ini</label>
+                    <input type="number" id="inventory-current-stock" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                </div>
+            </div>
+
+            <div class="mt-8 flex justify-end space-x-4">
+                <button type="button" id="cancel-inventory-button" class="bg-gray-200 text-gray-700 font-bold py-2 px-6 rounded-lg hover:bg-gray-300">
+                    Batal
+                </button>
+                <button type="submit" class="bg-blue-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-blue-700">
+                    Simpan
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- 8. NOTIFICATION TOAST -->
     <div id="notification-toast" class="fixed bottom-5 right-5 bg-gray-900 text-white px-6 py-3 rounded-lg shadow-lg z-50 hidden transition-opacity duration-300">
         <span id="toast-message"></span>
+    </div>
+
+    <!-- 9. SESSION WARNING MODAL -->
+    <div id="session-warning" class="session-warning hidden">
+        <div class="flex items-center mb-4">
+            <i data-lucide="alert-circle" class="w-6 h-6 text-yellow-500 mr-3"></i>
+            <h3 class="text-lg font-semibold">Sesi Akan Berakhir</h3>
+        </div>
+        <p class="text-gray-600 mb-4">Sesi Anda akan berakhir dalam <span id="session-countdown">2:00</span> menit karena tidak ada aktivitas. Apakah Anda ingin melanjutkan sesi?</p>
+        <div class="flex justify-end space-x-2">
+            <button id="extend-session" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">Lanjutkan Sesi</button>
+            <button id="logout-now" class="bg-gray-200 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-300">Logout</button>
+        </div>
     </div>
 
     <!-- ====================================================================== -->
@@ -796,6 +1062,7 @@
         };
         let connectionLines = [];
         let selectedMarker = null;
+        let draggedMarker = null;
         
         // Data cache untuk aplikasi
         let dataCache = {
@@ -805,7 +1072,8 @@
             Pelanggan: [],
             Paket: [],
             Karyawan: [],
-            AuditLog: []
+            AuditLog: [],
+            Inventory: []
         };
         
         let offlineQueue = JSON.parse(localStorage.getItem('offlineQueue') || '[]');
@@ -813,6 +1081,13 @@
         let currentPage = 1;
         let itemsPerPage = 10;
         let filteredData = [];
+        
+        // Session management variables
+        let sessionTimeout;
+        let warningTimeout;
+        let countdownInterval;
+        let sessionTimeoutMinutes = 15;
+        let warningTimeoutMinutes = 13;
 
         // --- Selektor DOM ---
         const $ = document.getElementById.bind(document);
@@ -834,8 +1109,12 @@
         const detailModal = $('detail-modal');
         const detailTitle = $('detail-title');
         const detailContent = $('detail-content');
+        const importModal = $('import-modal');
+        const inventoryModal = $('inventory-modal');
+        const inventoryForm = $('inventory-form');
         const toast = $('notification-toast');
         const toastMessage = $('toast-message');
+        const sessionWarning = $('session-warning');
 
         // --- 1. Inisialisasi Aplikasi ---
         
@@ -846,6 +1125,9 @@
             updateOnlineStatusUI(isOnline);
             loadSettings();
             applySettings();
+            setupSessionManagement();
+            updateCurrentTime();
+            setInterval(updateCurrentTime, 1000);
         });
 
         // --- 2. Autentikasi Firebase ---
@@ -955,8 +1237,29 @@
             $('close-detail-button').addEventListener('click', () => detailModal.classList.add('hidden'));
             $('close-detail-modal-button').addEventListener('click', () => detailModal.classList.add('hidden'));
 
-            // Setup Global Search
-            setupGlobalSearch();
+            // Setup Modal Import
+            $('close-import-modal-button').addEventListener('click', () => importModal.classList.add('hidden'));
+            $('cancel-import-button').addEventListener('click', () => importModal.classList.add('hidden'));
+            $('process-import-button').addEventListener('click', processImport);
+            
+            // Setup Import Button
+            $('import-button').addEventListener('click', () => {
+                importModal.classList.remove('hidden');
+            });
+            
+            // Setup Modal Inventory
+            $('close-inventory-modal-button').addEventListener('click', () => inventoryModal.classList.add('hidden'));
+            $('cancel-inventory-button').addEventListener('click', () => inventoryModal.classList.add('hidden'));
+            inventoryForm.addEventListener('submit', saveInventoryItem);
+            
+            // Setup Inventory Buttons
+            $('add-ont-btn').addEventListener('click', () => showInventoryModal('ONT'));
+            $('add-cable-btn').addEventListener('click', () => showInventoryModal('Kabel'));
+            $('add-splitter-btn').addEventListener('click', () => showInventoryModal('Splitter'));
+            $('add-material-btn').addEventListener('click', () => showInventoryModal('Material'));
+            
+            // Setup Dashboard Cards
+            setupDashboardCards();
             
             // Setup Settings
             setupSettings();
@@ -1009,6 +1312,18 @@
                 if (currentEntity) {
                     showFormModal(currentEntity);
                 }
+            });
+        }
+
+        function setupDashboardCards() {
+            $$('.dashboard-card').forEach(card => {
+                card.addEventListener('click', () => {
+                    const entity = card.dataset.entity;
+                    if (entity) {
+                        loadTablePage(entity);
+                        showPage('table');
+                    }
+                });
             });
         }
 
@@ -1126,151 +1441,99 @@
             $('device-type-filter').addEventListener('change', (e) => {
                 const deviceType = e.target.value;
                 
-                // Hide all device-specific filters
-                $('olt-filter').classList.add('hidden');
-                $('odc-filter').classList.add('hidden');
-                $('odp-filter').classList.add('hidden');
-                $('pelanggan-filter').classList.add('hidden');
+                // Clear all markers
+                Object.values(markerLayers).forEach(layer => layer.clearLayers());
                 
-                // Show the relevant filter
                 if (deviceType) {
-                    $(`${deviceType.toLowerCase()}-filter`).classList.remove('hidden');
+                    // Render only selected device type
+                    renderMarkers(deviceType, dataCache[deviceType]);
+                } else {
+                    // Render all device types
+                    Object.keys(markerLayers).forEach(entityType => {
+                        renderMarkers(entityType, dataCache[entityType]);
+                    });
                 }
+            });
+            
+            // Region code filter
+            $('region-code-filter').addEventListener('input', (e) => {
+                const regionCode = e.target.value.toUpperCase();
+                
+                // Clear all markers
+                Object.values(markerLayers).forEach(layer => layer.clearLayers());
+                
+                // Filter and render markers based on region code
+                Object.keys(markerLayers).forEach(entityType => {
+                    const filteredData = dataCache[entityType].filter(item => {
+                        if (entityType === 'OLT' || entityType === 'ODC' || entityType === 'ODP') {
+                            return item.kodeWilayah && item.kodeWilayah.toUpperCase().includes(regionCode);
+                        } else if (entityType === 'Pelanggan') {
+                            // For customers, check if their ODP matches the region
+                            const odp = dataCache.ODP.find(o => o.id === item.odpRef);
+                            return odp && odp.kodeWilayah && odp.kodeWilayah.toUpperCase().includes(regionCode);
+                        }
+                        return false;
+                    });
+                    
+                    renderMarkers(entityType, filteredData);
+                });
+            });
+            
+            // Sector code filter
+            $('sector-code-filter').addEventListener('input', (e) => {
+                const sectorCode = e.target.value.toUpperCase();
+                
+                // Clear all markers
+                Object.values(markerLayers).forEach(layer => layer.clearLayers());
+                
+                // Filter and render markers based on sector code
+                Object.keys(markerLayers).forEach(entityType => {
+                    const filteredData = dataCache[entityType].filter(item => {
+                        if (entityType === 'OLT' || entityType === 'ODC' || entityType === 'ODP') {
+                            return item.kodeSektor && item.kodeSektor.toUpperCase().includes(sectorCode);
+                        } else if (entityType === 'Pelanggan') {
+                            // For customers, check if their ODP matches the sector
+                            const odp = dataCache.ODP.find(o => o.id === item.odpRef);
+                            return odp && odp.kodeSektor && odp.kodeSektor.toUpperCase().includes(sectorCode);
+                        }
+                        return false;
+                    });
+                    
+                    renderMarkers(entityType, filteredData);
+                });
+            });
+            
+            // ONT SN filter
+            $('ont-sn-filter').addEventListener('input', (e) => {
+                const ontSN = e.target.value.toUpperCase();
+                
+                // Clear all markers
+                Object.values(markerLayers).forEach(layer => layer.clearLayers());
+                
+                // Filter and render markers based on ONT SN
+                Object.keys(markerLayers).forEach(entityType => {
+                    const filteredData = dataCache[entityType].filter(item => {
+                        if (entityType === 'OLT') {
+                            return item.sn && item.sn.toUpperCase().includes(ontSN);
+                        } else if (entityType === 'Pelanggan') {
+                            return item.snONT && item.snONT.toUpperCase().includes(ontSN);
+                        }
+                        return false;
+                    });
+                    
+                    renderMarkers(entityType, filteredData);
+                });
             });
             
             // Apply filters button
             $('apply-filters').addEventListener('click', () => {
-                applyMapFilters();
+                showToast('Filter diterapkan', 'success');
             });
             
             // Reset filters button
             $('reset-filters').addEventListener('click', () => {
                 resetMapFilters();
             });
-            
-            // OLT specific filters
-            $('olt-type-filter').addEventListener('input', () => {
-                updateOLTSelectOptions();
-            });
-            
-            $('olt-name-filter').addEventListener('input', () => {
-                updateOLTSelectOptions();
-            });
-            
-            $('olt-sn-filter').addEventListener('input', () => {
-                updateOLTSelectOptions();
-            });
-            
-            // ODC specific filters
-            $('odc-region-filter').addEventListener('change', () => {
-                updateODCSectorOptions();
-            });
-            
-            // ODP specific filters
-            $('odp-region-filter').addEventListener('change', () => {
-                updateODPSectorOptions();
-            });
-            
-            // Pelanggan specific filters
-            $('pelanggan-number-filter').addEventListener('input', () => {
-                updatePelangganODPOptions();
-            });
-            
-            $('pelanggan-ont-filter').addEventListener('input', () => {
-                updatePelangganODPOptions();
-            });
-        }
-
-        function applyMapFilters() {
-            const deviceType = $('device-type-filter').value;
-            const regionCode = $('region-code-filter').value.toLowerCase();
-            const sectorCode = $('sector-code-filter').value.toLowerCase();
-            const ontSN = $('ont-sn-filter').value.toLowerCase();
-            
-            // Clear all markers
-            Object.values(markerLayers).forEach(layer => layer.clearLayers());
-            
-            // Filter and render markers based on the selected filters
-            if (!deviceType || deviceType === 'OLT') {
-                const filteredOLT = dataCache.OLT.filter(olt => {
-                    if (regionCode && !olt.code.toLowerCase().includes(regionCode)) return false;
-                    if (sectorCode && !olt.name.toLowerCase().includes(sectorCode)) return false;
-                    if (ontSN && !olt.sn.toLowerCase().includes(ontSN)) return false;
-                    
-                    // Additional OLT specific filters
-                    const oltType = $('olt-type-filter').value.toLowerCase();
-                    const oltName = $('olt-name-filter').value.toLowerCase();
-                    const oltSN = $('olt-sn-filter').value.toLowerCase();
-                    const selectedOLT = $('olt-select-filter').value;
-                    
-                    if (oltType && !olt.code.toLowerCase().includes(oltType)) return false;
-                    if (oltName && !olt.name.toLowerCase().includes(oltName)) return false;
-                    if (oltSN && !olt.sn.toLowerCase().includes(oltSN)) return false;
-                    if (selectedOLT && olt.id !== selectedOLT) return false;
-                    
-                    return true;
-                });
-                renderMarkers('OLT', filteredOLT);
-            }
-            
-            if (!deviceType || deviceType === 'ODC') {
-                const filteredODC = dataCache.ODC.filter(odc => {
-                    if (regionCode && !odc.kodeWilayah.toLowerCase().includes(regionCode)) return false;
-                    if (sectorCode && !odc.kodeSektor.toLowerCase().includes(sectorCode)) return false;
-                    
-                    // Additional ODC specific filters
-                    const odcRegion = $('odc-region-filter').value;
-                    const odcSector = $('odc-sector-filter').value;
-                    
-                    if (odcRegion && odc.kodeWilayah !== odcRegion) return false;
-                    if (odcSector && odc.kodeSektor !== odcSector) return false;
-                    
-                    return true;
-                });
-                renderMarkers('ODC', filteredODC);
-            }
-            
-            if (!deviceType || deviceType === 'ODP') {
-                const filteredODP = dataCache.ODP.filter(odp => {
-                    if (regionCode && !odp.kodeWilayah.toLowerCase().includes(regionCode)) return false;
-                    if (sectorCode && !odp.kodeSektor.toLowerCase().includes(sectorCode)) return false;
-                    
-                    // Additional ODP specific filters
-                    const odpRegion = $('odp-region-filter').value;
-                    const odpSector = $('odp-sector-filter').value;
-                    const odpName = $('odp-name-filter').value.toLowerCase();
-                    
-                    if (odpRegion && odp.kodeWilayah !== odpRegion) return false;
-                    if (odpSector && odp.kodeSektor !== odpSector) return false;
-                    if (odpName && !odp.namaODP.toLowerCase().includes(odpName)) return false;
-                    
-                    return true;
-                });
-                renderMarkers('ODP', filteredODP);
-            }
-            
-            if (!deviceType || deviceType === 'Pelanggan') {
-                const filteredPelanggan = dataCache.Pelanggan.filter(pelanggan => {
-                    if (regionCode && !pelanggan.customerNumber.toLowerCase().includes(regionCode)) return false;
-                    if (sectorCode && !pelanggan.name.toLowerCase().includes(sectorCode)) return false;
-                    if (ontSN && !pelanggan.snONT.toLowerCase().includes(ontSN)) return false;
-                    
-                    // Additional Pelanggan specific filters
-                    const pelangganNumber = $('pelanggan-number-filter').value.toLowerCase();
-                    const pelangganONT = $('pelanggan-ont-filter').value.toLowerCase();
-                    const pelangganODP = $('pelanggan-odp-filter').value;
-                    
-                    if (pelangganNumber && !pelanggan.customerNumber.toLowerCase().includes(pelangganNumber)) return false;
-                    if (pelangganONT && !pelanggan.snONT.toLowerCase().includes(pelangganONT)) return false;
-                    if (pelangganODP && pelanggan.odpRef !== pelangganODP) return false;
-                    
-                    return true;
-                });
-                renderMarkers('Pelanggan', filteredPelanggan);
-            }
-            
-            // Show search results
-            showSearchResults(deviceType, regionCode, sectorCode, ontSN);
         }
 
         function resetMapFilters() {
@@ -1280,314 +1543,10 @@
             $('sector-code-filter').value = '';
             $('ont-sn-filter').value = '';
             
-            // Reset device-specific filters
-            $('olt-type-filter').value = '';
-            $('olt-name-filter').value = '';
-            $('olt-sn-filter').value = '';
-            $('olt-select-filter').value = '';
-            
-            $('odc-region-filter').value = '';
-            $('odc-sector-filter').value = '';
-            
-            $('odp-region-filter').value = '';
-            $('odp-sector-filter').value = '';
-            $('odp-name-filter').value = '';
-            
-            $('pelanggan-number-filter').value = '';
-            $('pelanggan-ont-filter').value = '';
-            $('pelanggan-odp-filter').value = '';
-            
-            // Hide all device-specific filters
-            $('olt-filter').classList.add('hidden');
-            $('odc-filter').classList.add('hidden');
-            $('odp-filter').classList.add('hidden');
-            $('pelanggan-filter').classList.add('hidden');
-            
-            // Hide search results
-            $('search-results').classList.add('hidden');
-            
             // Render all markers
-            renderMarkers('OLT', dataCache.OLT);
-            renderMarkers('ODC', dataCache.ODC);
-            renderMarkers('ODP', dataCache.ODP);
-            renderMarkers('Pelanggan', dataCache.Pelanggan);
-        }
-
-        function showSearchResults(deviceType, regionCode, sectorCode, ontSN) {
-            const searchResultsList = $('search-results-list');
-            searchResultsList.innerHTML = '';
-            
-            let results = [];
-            
-            // Search in OLT
-            if (!deviceType || deviceType === 'OLT') {
-                const oltResults = dataCache.OLT.filter(olt => {
-                    if (regionCode && !olt.code.toLowerCase().includes(regionCode)) return false;
-                    if (sectorCode && !olt.name.toLowerCase().includes(sectorCode)) return false;
-                    if (ontSN && !olt.sn.toLowerCase().includes(ontSN)) return false;
-                    
-                    // Additional OLT specific filters
-                    const oltType = $('olt-type-filter').value.toLowerCase();
-                    const oltName = $('olt-name-filter').value.toLowerCase();
-                    const oltSN = $('olt-sn-filter').value.toLowerCase();
-                    const selectedOLT = $('olt-select-filter').value;
-                    
-                    if (oltType && !olt.code.toLowerCase().includes(oltType)) return false;
-                    if (oltName && !olt.name.toLowerCase().includes(oltName)) return false;
-                    if (oltSN && !olt.sn.toLowerCase().includes(oltSN)) return false;
-                    if (selectedOLT && olt.id !== selectedOLT) return false;
-                    
-                    return true;
-                });
-                
-                oltResults.forEach(olt => {
-                    results.push({
-                        type: 'OLT',
-                        id: olt.id,
-                        name: olt.name,
-                        code: olt.code,
-                        sn: olt.sn,
-                        location: olt.location
-                    });
-                });
-            }
-            
-            // Search in ODC
-            if (!deviceType || deviceType === 'ODC') {
-                const odcResults = dataCache.ODC.filter(odc => {
-                    if (regionCode && !odc.kodeWilayah.toLowerCase().includes(regionCode)) return false;
-                    if (sectorCode && !odc.kodeSektor.toLowerCase().includes(sectorCode)) return false;
-                    
-                    // Additional ODC specific filters
-                    const odcRegion = $('odc-region-filter').value;
-                    const odcSector = $('odc-sector-filter').value;
-                    
-                    if (odcRegion && odc.kodeWilayah !== odcRegion) return false;
-                    if (odcSector && odc.kodeSektor !== odcSector) return false;
-                    
-                    return true;
-                });
-                
-                odcResults.forEach(odc => {
-                    results.push({
-                        type: 'ODC',
-                        id: odc.id,
-                        name: odc.namaODC,
-                        code: `${odc.kodeWilayah}-${odc.kodeSektor}`,
-                        location: odc.location
-                    });
-                });
-            }
-            
-            // Search in ODP
-            if (!deviceType || deviceType === 'ODP') {
-                const odpResults = dataCache.ODP.filter(odp => {
-                    if (regionCode && !odp.kodeWilayah.toLowerCase().includes(regionCode)) return false;
-                    if (sectorCode && !odp.kodeSektor.toLowerCase().includes(sectorCode)) return false;
-                    
-                    // Additional ODP specific filters
-                    const odpRegion = $('odp-region-filter').value;
-                    const odpSector = $('odp-sector-filter').value;
-                    const odpName = $('odp-name-filter').value.toLowerCase();
-                    
-                    if (odpRegion && odp.kodeWilayah !== odpRegion) return false;
-                    if (odpSector && odp.kodeSektor !== odpSector) return false;
-                    if (odpName && !odp.namaODP.toLowerCase().includes(odpName)) return false;
-                    
-                    return true;
-                });
-                
-                odpResults.forEach(odp => {
-                    results.push({
-                        type: 'ODP',
-                        id: odp.id,
-                        name: odp.namaODP,
-                        code: `${odp.kodeWilayah}-${odp.kodeSektor}-${odp.nomorODC}`,
-                        location: odp.location
-                    });
-                });
-            }
-            
-            // Search in Pelanggan
-            if (!deviceType || deviceType === 'Pelanggan') {
-                const pelangganResults = dataCache.Pelanggan.filter(pelanggan => {
-                    if (regionCode && !pelanggan.customerNumber.toLowerCase().includes(regionCode)) return false;
-                    if (sectorCode && !pelanggan.name.toLowerCase().includes(sectorCode)) return false;
-                    if (ontSN && !pelanggan.snONT.toLowerCase().includes(ontSN)) return false;
-                    
-                    // Additional Pelanggan specific filters
-                    const pelangganNumber = $('pelanggan-number-filter').value.toLowerCase();
-                    const pelangganONT = $('pelanggan-ont-filter').value.toLowerCase();
-                    const pelangganODP = $('pelanggan-odp-filter').value;
-                    
-                    if (pelangganNumber && !pelanggan.customerNumber.toLowerCase().includes(pelangganNumber)) return false;
-                    if (pelangganONT && !pelanggan.snONT.toLowerCase().includes(pelangganONT)) return false;
-                    if (pelangganODP && pelanggan.odpRef !== pelangganODP) return false;
-                    
-                    return true;
-                });
-                
-                pelangganResults.forEach(pelanggan => {
-                    const odp = dataCache.ODP.find(o => o.id === pelanggan.odpRef);
-                    results.push({
-                        type: 'Pelanggan',
-                        id: pelanggan.id,
-                        name: pelanggan.name,
-                        code: pelanggan.customerNumber,
-                        sn: pelanggan.snONT,
-                        location: pelanggan.location,
-                        odp: odp ? odp.namaODP : 'N/A'
-                    });
-                });
-            }
-            
-            // Display search results
-            if (results.length > 0) {
-                $('search-results').classList.remove('hidden');
-                
-                results.forEach(result => {
-                    const resultItem = document.createElement('div');
-                    resultItem.className = 'search-result';
-                    
-                    let detailText = '';
-                    if (result.type === 'OLT') {
-                        detailText = `SN: ${result.sn}`;
-                    } else if (result.type === 'ODC') {
-                        detailText = `Kode: ${result.code}`;
-                    } else if (result.type === 'ODP') {
-                        detailText = `Kode: ${result.code}`;
-                    } else if (result.type === 'Pelanggan') {
-                        detailText = `No. Pelanggan: ${result.code}, SN ONT: ${result.sn}, ODP: ${result.odp}`;
-                    }
-                    
-                    resultItem.innerHTML = `
-                        <div class="search-result-title">${result.type}: ${result.name}</div>
-                        <div class="search-result-detail">${detailText}</div>
-                    `;
-                    
-                    resultItem.addEventListener('click', () => {
-                        // Zoom to the selected marker
-                        if (result.location) {
-                            map.setView([result.location.lat, result.location.lng], 16);
-                            
-                            // Find and open the popup for the selected marker
-                            const layer = markerLayers[result.type];
-                            layer.eachLayer(marker => {
-                                if (marker.options && marker.options.id === result.id) {
-                                    marker.openPopup();
-                                }
-                            });
-                        }
-                    });
-                    
-                    searchResultsList.appendChild(resultItem);
-                });
-            } else {
-                $('search-results').classList.add('hidden');
-            }
-        }
-
-        function updateOLTSelectOptions() {
-            const oltSelect = $('olt-select-filter');
-            const oltType = $('olt-type-filter').value.toLowerCase();
-            const oltName = $('olt-name-filter').value.toLowerCase();
-            const oltSN = $('olt-sn-filter').value.toLowerCase();
-            
-            // Clear existing options
-            oltSelect.innerHTML = '<option value="">Pilih OLT</option>';
-            
-            // Filter OLTs based on the input values
-            const filteredOLTs = dataCache.OLT.filter(olt => {
-                if (oltType && !olt.code.toLowerCase().includes(oltType)) return false;
-                if (oltName && !olt.name.toLowerCase().includes(oltName)) return false;
-                if (oltSN && !olt.sn.toLowerCase().includes(oltSN)) return false;
-                return true;
-            });
-            
-            // Add filtered OLTs to the select
-            filteredOLTs.forEach(olt => {
-                const option = document.createElement('option');
-                option.value = olt.id;
-                option.textContent = `${olt.name} (${olt.code})`;
-                oltSelect.appendChild(option);
-            });
-        }
-
-        function updateODCSectorOptions() {
-            const odcSectorSelect = $('odc-sector-filter');
-            const odcRegion = $('odc-region-filter').value;
-            
-            // Clear existing options
-            odcSectorSelect.innerHTML = '<option value="">Semua Sektor</option>';
-            
-            if (!odcRegion) return;
-            
-            // Get unique sectors for the selected region
-            const sectors = [...new Set(dataCache.ODC
-                .filter(odc => odc.kodeWilayah === odcRegion)
-                .map(odc => odc.kodeSektor)
-            )];
-            
-            // Add sectors to the select
-            sectors.forEach(sector => {
-                const option = document.createElement('option');
-                option.value = sector;
-                option.textContent = sector;
-                odcSectorSelect.appendChild(option);
-            });
-        }
-
-        function updateODPSectorOptions() {
-            const odpSectorSelect = $('odp-sector-filter');
-            const odpRegion = $('odp-region-filter').value;
-            
-            // Clear existing options
-            odpSectorSelect.innerHTML = '<option value="">Semua Sektor</option>';
-            
-            if (!odpRegion) return;
-            
-            // Get unique sectors for the selected region
-            const sectors = [...new Set(dataCache.ODP
-                .filter(odp => odp.kodeWilayah === odpRegion)
-                .map(odp => odp.kodeSektor)
-            )];
-            
-            // Add sectors to the select
-            sectors.forEach(sector => {
-                const option = document.createElement('option');
-                option.value = sector;
-                option.textContent = sector;
-                odpSectorSelect.appendChild(option);
-            });
-        }
-
-        function updatePelangganODPOptions() {
-            const pelangganODPSelect = $('pelanggan-odp-filter');
-            const pelangganNumber = $('pelanggan-number-filter').value.toLowerCase();
-            const pelangganONT = $('pelanggan-ont-filter').value.toLowerCase();
-            
-            // Clear existing options
-            pelangganODPSelect.innerHTML = '<option value="">Semua ODP</option>';
-            
-            // Get ODPs that have customers matching the filters
-            const customerODPIds = [...new Set(dataCache.Pelanggan
-                .filter(pelanggan => {
-                    if (pelangganNumber && !pelanggan.customerNumber.toLowerCase().includes(pelangganNumber)) return false;
-                    if (pelangganONT && !pelanggan.snONT.toLowerCase().includes(pelangganONT)) return false;
-                    return true;
-                })
-                .map(pelanggan => pelanggan.odpRef)
-            )];
-            
-            // Get ODP details
-            const customerODPs = dataCache.ODP.filter(odp => customerODPIds.includes(odp.id));
-            
-            // Add ODPs to the select
-            customerODPs.forEach(odp => {
-                const option = document.createElement('option');
-                option.value = odp.id;
-                option.textContent = odp.namaODP;
-                pelangganODPSelect.appendChild(option);
+            Object.keys(markerLayers).forEach(entityType => {
+                markerLayers[entityType].clearLayers();
+                renderMarkers(entityType, dataCache[entityType]);
             });
         }
 
@@ -1610,7 +1569,8 @@
                             iconSize: [24, 24],
                             iconAnchor: [12, 12]
                         }),
-                        id: item.id
+                        id: item.id,
+                        draggable: true
                     });
                 } else if (entity === 'ODC') {
                     marker = L.marker(latLng, { 
@@ -1620,7 +1580,8 @@
                             iconSize: [24, 24],
                             iconAnchor: [12, 12]
                         }),
-                        id: item.id
+                        id: item.id,
+                        draggable: true
                     });
                 } else if (entity === 'ODP') {
                     const capacity = getOdpCapacity(item);
@@ -1632,7 +1593,8 @@
                             iconSize: [24, 24],
                             iconAnchor: [12, 12]
                         }),
-                        id: item.id
+                        id: item.id,
+                        draggable: true
                     });
                 } else if (entity === 'Pelanggan') {
                     marker = L.marker(latLng, { 
@@ -1642,12 +1604,73 @@
                             iconSize: [20, 20],
                             iconAnchor: [10, 10]
                         }),
-                        id: item.id
+                        id: item.id,
+                        draggable: true
                     });
                 }
 
                 if (marker) {
                     marker.bindPopup(createPopupContent(entity, item));
+                    
+                    // Add drag event
+                    marker.on('dragstart', function(e) {
+                        draggedMarker = {
+                            entity: entity,
+                            id: item.id,
+                            originalPosition: item.location
+                        };
+                        this._icon.classList.add('marker-dragging');
+                    });
+                    
+                    marker.on('dragend', async function(e) {
+                        this._icon.classList.remove('marker-dragging');
+                        
+                        const newPosition = e.target.getLatLng();
+                        const newLocation = {
+                            lat: newPosition.lat,
+                            lng: newPosition.lng
+                        };
+                        
+                        try {
+                            // Update in database
+                            await db.collection(entity).doc(item.id).update({
+                                location: newLocation,
+                                updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                                updatedBy: currentUser.email
+                            });
+                            
+                            // Update in cache
+                            const index = dataCache[entity].findIndex(i => i.id === item.id);
+                            if (index !== -1) {
+                                dataCache[entity][index].location = newLocation;
+                            }
+                            
+                            // Log audit
+                            await logAudit('update', entity, item.id, { 
+                                location: { 
+                                    from: draggedMarker.originalPosition, 
+                                    to: newLocation 
+                                } 
+                            });
+                            
+                            showToast(`Lokasi ${entity} berhasil diperbarui`, 'success');
+                            
+                            // Update popup content
+                            this.setPopupContent(createPopupContent(entity, {
+                                ...item,
+                                location: newLocation
+                            }));
+                        } catch (error) {
+                            console.error('Error updating marker position:', error);
+                            showToast('Gagal memperbarui lokasi', 'error');
+                            
+                            // Revert to original position
+                            this.setLatLng(draggedMarker.originalPosition);
+                        }
+                        
+                        draggedMarker = null;
+                    });
+                    
                     marker.on('click', () => {
                         selectedMarker = { entity, item };
                         showConnections(entity, item);
@@ -1916,7 +1939,8 @@
                     loadDataFromFirestore('Pelanggan'),
                     loadDataFromFirestore('Paket'),
                     loadDataFromFirestore('Karyawan'),
-                    loadDataFromFirestore('AuditLog')
+                    loadDataFromFirestore('AuditLog'),
+                    loadDataFromFirestore('Inventory')
                 ]);
                 
                 // Simpan data ke localStorage untuk mode offline
@@ -1930,9 +1954,7 @@
                 
                 renderAuditLog(dataCache.AuditLog);
                 updateDashboardStats();
-                
-                // Update filter options
-                updateMapFilterOptions();
+                renderInventoryList();
                 
                 showToast('Data berhasil dimuat', 'success');
             } catch (error) {
@@ -1942,42 +1964,6 @@
                 // Jika gagal memuat dari Firebase, coba dari localStorage
                 loadLocalData();
             }
-        }
-
-        function updateMapFilterOptions() {
-            // Update OLT select options
-            updateOLTSelectOptions();
-            
-            // Update ODC region options
-            const odcRegionSelect = $('odc-region-filter');
-            const odcRegions = [...new Set(dataCache.ODC.map(odc => odc.kodeWilayah))];
-            
-            odcRegions.forEach(region => {
-                const option = document.createElement('option');
-                option.value = region;
-                option.textContent = region;
-                odcRegionSelect.appendChild(option);
-            });
-            
-            // Update ODP region options
-            const odpRegionSelect = $('odp-region-filter');
-            const odpRegions = [...new Set(dataCache.ODP.map(odp => odp.kodeWilayah))];
-            
-            odpRegions.forEach(region => {
-                const option = document.createElement('option');
-                option.value = region;
-                option.textContent = region;
-                odpRegionSelect.appendChild(option);
-            });
-            
-            // Update Pelanggan ODP options
-            const pelangganODPSelect = $('pelanggan-odp-filter');
-            dataCache.ODP.forEach(odp => {
-                const option = document.createElement('option');
-                option.value = odp.id;
-                option.textContent = odp.namaODP;
-                pelangganODPSelect.appendChild(option);
-            });
         }
 
         function loadLocalData() {
@@ -1999,9 +1985,7 @@
                 
                 renderAuditLog(dataCache.AuditLog);
                 updateDashboardStats();
-                
-                // Update filter options
-                updateMapFilterOptions();
+                renderInventoryList();
                 
                 showToast('Data berhasil dimuat dari cache lokal', 'success');
             } catch (error) {
@@ -2053,28 +2037,21 @@
 
         function setupTableSearch(entity) {
             const searchInput = $('table-search');
-            const filterSelect = $('table-filter');
             
             // Clear previous event listeners
             const newSearchInput = searchInput.cloneNode(true);
-            const newFilterSelect = filterSelect.cloneNode(true);
             searchInput.parentNode.replaceChild(newSearchInput, searchInput);
-            filterSelect.parentNode.replaceChild(newFilterSelect, filterSelect);
             
             // Add new event listeners
             newSearchInput.addEventListener('input', () => {
-                filterTableData(entity, newSearchInput.value, newFilterSelect.value);
-            });
-            
-            newFilterSelect.addEventListener('change', () => {
-                filterTableData(entity, newSearchInput.value, newFilterSelect.value);
+                filterTableData(entity, newSearchInput.value);
             });
             
             // Setup pagination
             setupPagination();
         }
 
-        function filterTableData(entity, searchTerm, statusFilter) {
+        function filterTableData(entity, searchTerm) {
             let data = [...dataCache[entity]];
             
             // Filter berdasarkan search term
@@ -2088,16 +2065,6 @@
                         return false;
                     });
                 });
-            }
-            
-            // Filter berdasarkan status
-            if (statusFilter && entity === 'Pelanggan') {
-                data = data.filter(item => item.status === statusFilter);
-            }
-            
-            // Filter khusus untuk Karyawan berdasarkan role
-            if (entity === 'Karyawan' && statusFilter) {
-                data = data.filter(item => item.role === statusFilter);
             }
             
             // Simpan data yang sudah difilter
@@ -2145,8 +2112,8 @@
             
             // Definisikan header tabel berdasarkan entity
             if (entity === 'OLT') headers = ['OLT', 'Type', 'Model', 'SN', 'Rak', 'Slot/Port', 'Lokasi', 'Aksi'];
-            else if (entity === 'ODC') headers = ['Kode Wilayah', 'Kode Sektor', 'Nama ODC', 'Kapasitas', 'OLT', 'Slot/Port OLT', 'Panel Feeder', 'Aksi'];
-            else if (entity === 'ODP') headers = ['Kode Wilayah', 'Kode Sektor', 'Nomor ODP', 'Nama ODP', 'Panel Feeder', 'Panel Distribusi', 'Kapasitas', 'Aksi'];
+            else if (entity === 'ODC') headers = ['Kode Wilayah', 'Kode Sektor', 'Nama ODC', 'Kapasitas', 'OLT', 'Slot/Port OLT', 'Panel Feeder', 'Panel Distribusi', 'Aksi'];
+            else if (entity === 'ODP') headers = ['Kode Wilayah', 'Kode Sektor', 'Nomor ODP', 'Nama ODP', 'Panel Feeder', 'Port Feeder', 'Panel Distribusi', 'Port Distribusi', 'Kapasitas', 'Aksi'];
             else if (entity === 'Pelanggan') headers = ['No. Pelanggan', 'Nama', 'Username', 'Paket', 'ODP', 'Port', 'Status', 'Aksi'];
             else if (entity === 'Paket') headers = ['Jenis Paket', 'Kecepatan', 'Harga', 'Aksi'];
             else if (entity === 'Karyawan') headers = ['Nama', 'Email', 'Role', 'Status', 'Aksi'];
@@ -2198,6 +2165,7 @@
                         <td class="px-4 py-3 text-sm text-gray-700">${olt?.name || 'N/A'}</td>
                         <td class="px-4 py-3 text-sm text-gray-700">${item.oltSlot || 'N/A'}/${item.oltPort || 'N/A'}</td>
                         <td class="px-4 py-3 text-sm text-gray-700">${item.panelFeeder || 'N/A'}/${item.portFeeder || 'N/A'}</td>
+                        <td class="px-4 py-3 text-sm text-gray-700">${item.panelDistribusi || 'N/A'}/${item.portDistribusi || 'N/A'}</td>
                     `;
                 } else if (entity === 'ODP') {
                     const { used, total, percentage } = getOdpCapacity(item);
@@ -2207,8 +2175,10 @@
                         <td class="px-4 py-3 text-sm text-gray-700">${item.kodeSektor}</td>
                         <td class="px-4 py-3 text-sm text-gray-700">${item.nomorODC}</td>
                         <td class="px-4 py-3 text-sm text-gray-700">${item.namaODP}</td>
-                        <td class="px-4 py-3 text-sm text-gray-700">${item.panelFeeder || 'N/A'}/${item.portFeeder || 'N/A'}</td>
-                        <td class="px-4 py-3 text-sm text-gray-700">${item.panelDistribusi || 'N/A'}/${item.portDistribusi || 'N/A'}</td>
+                        <td class="px-4 py-3 text-sm text-gray-700">${item.panelFeeder || 'N/A'}</td>
+                        <td class="px-4 py-3 text-sm text-gray-700">${item.portFeeder || 'N/A'}</td>
+                        <td class="px-4 py-3 text-sm text-gray-700">${item.panelDistribusi || 'N/A'}</td>
+                        <td class="px-4 py-3 text-sm text-gray-700">${item.portDistribusi || 'N/A'}</td>
                         <td class="px-4 py-3 text-sm text-gray-700">
                             <div class="flex items-center">
                                 <span class="font-medium ${percentage >= 100 ? 'text-red-600' : (percentage >= 75 ? 'text-orange-600' : 'text-green-600')}">
@@ -2745,12 +2715,70 @@
             // Update statistik dashboard
             $('stat-odp').textContent = dataCache.ODP.length;
             $('stat-pelanggan').textContent = dataCache.Pelanggan.length;
+            $('stat-olt').textContent = dataCache.OLT.length;
             $('stat-karyawan').textContent = dataCache.Karyawan.length;
             
-            // Hitung kapasitas port
-            const totalPorts = dataCache.ODP.reduce((sum, odp) => sum + (odp.totalPorts || 0), 0);
-            const usedPorts = dataCache.Pelanggan.filter(p => p.status === 'active').length;
-            $('stat-ports').textContent = `${usedPorts}/${totalPorts}`;
+            // Update network capacity
+            updateNetworkCapacity();
+        }
+
+        function updateNetworkCapacity() {
+            // Calculate ODP capacity
+            const totalOdpPorts = dataCache.ODP.reduce((sum, odp) => sum + (odp.totalPorts || 0), 0);
+            const usedOdpPorts = dataCache.Pelanggan.filter(p => p.status === 'active').length;
+            const odpPercentage = totalOdpPorts > 0 ? (usedOdpPorts / totalOdpPorts) * 100 : 0;
+            
+            $('odp-capacity-bar').style.width = `${odpPercentage}%`;
+            $('odp-capacity-text').textContent = `${odpPercentage.toFixed(1)}%`;
+            
+            // Update capacity bar color
+            const odpBar = $('odp-capacity-bar');
+            odpBar.classList.remove('capacity-low', 'capacity-medium', 'capacity-high');
+            if (odpPercentage >= 100) {
+                odpBar.classList.add('capacity-high');
+            } else if (odpPercentage >= 75) {
+                odpBar.classList.add('capacity-medium');
+            } else {
+                odpBar.classList.add('capacity-low');
+            }
+            
+            // Calculate ODC capacity
+            const totalOdcPorts = dataCache.ODC.reduce((sum, odc) => sum + (odc.capacity || 0), 0);
+            const usedOdcPorts = dataCache.ODP.length;
+            const odcPercentage = totalOdcPorts > 0 ? (usedOdcPorts / totalOdcPorts) * 100 : 0;
+            
+            $('odc-capacity-bar').style.width = `${odcPercentage}%`;
+            $('odc-capacity-text').textContent = `${odcPercentage.toFixed(1)}%`;
+            
+            // Update capacity bar color
+            const odcBar = $('odc-capacity-bar');
+            odcBar.classList.remove('capacity-low', 'capacity-medium', 'capacity-high');
+            if (odcPercentage >= 100) {
+                odcBar.classList.add('capacity-high');
+            } else if (odcPercentage >= 75) {
+                odcBar.classList.add('capacity-medium');
+            } else {
+                odcBar.classList.add('capacity-low');
+            }
+            
+            // Calculate OLT capacity
+            const totalOltPorts = dataCache.OLT.reduce((sum, olt) => sum + (olt.totalPorts || 0), 0);
+            const usedOltPorts = dataCache.ODC.length;
+            const oltPercentage = totalOltPorts > 0 ? (usedOltPorts / totalOltPorts) * 100 : 0;
+            
+            $('olt-capacity-bar').style.width = `${oltPercentage}%`;
+            $('olt-capacity-text').textContent = `${oltPercentage.toFixed(1)}%`;
+            
+            // Update capacity bar color
+            const oltBar = $('olt-capacity-bar');
+            oltBar.classList.remove('capacity-low', 'capacity-medium', 'capacity-high');
+            if (oltPercentage >= 100) {
+                oltBar.classList.add('capacity-high');
+            } else if (oltPercentage >= 75) {
+                oltBar.classList.add('capacity-medium');
+            } else {
+                oltBar.classList.add('capacity-low');
+            }
         }
 
         function getOdpCapacity(odp) {
@@ -2828,6 +2856,16 @@
                         const port = parseInt(odpPortInput.value);
                         
                         if (odpId && port) {
+                            const odp = dataCache.ODP.find(o => o.id === odpId);
+                            const capacity = getOdpCapacity(odp);
+                            
+                            if (port > capacity.total) {
+                                showToast(`Port ${port} melebihi kapasitas ODP (${capacity.total})`, 'warning');
+                                odpPortInput.classList.add('border-red-500');
+                            } else {
+                                odpPortInput.classList.remove('border-red-500');
+                            }
+                            
                             const existingCustomer = dataCache.Pelanggan.find(p => 
                                 p.odpRef === odpId && p.odpPort === port && p.id !== entityId
                             );
@@ -2958,6 +2996,53 @@
                     odcRefSelect.addEventListener('change', validatePortAvailability);
                 }
             }
+            
+            // Auto-generate ODP name based on region, sector, and number
+            if (entityType === 'ODP') {
+                const regionInput = formContent.querySelector('input[name="kodeWilayah"]');
+                const sectorInput = formContent.querySelector('input[name="kodeSektor"]');
+                const numberInput = formContent.querySelector('input[name="nomorODC"]');
+                const nameInput = formContent.querySelector('input[name="namaODP"]');
+                
+                if (regionInput && sectorInput && numberInput && nameInput) {
+                    const updateOdpName = () => {
+                        const region = regionInput.value.toUpperCase();
+                        const sector = sectorInput.value.toUpperCase();
+                        const number = numberInput.value;
+                        
+                        if (region && sector && number) {
+                            nameInput.value = `ODP-${region}-${sector}/${number.padStart(2, '0')}`;
+                        }
+                    };
+                    
+                    regionInput.addEventListener('input', updateOdpName);
+                    sectorInput.addEventListener('input', updateOdpName);
+                    numberInput.addEventListener('input', updateOdpName);
+                }
+            }
+            
+            // Auto-generate customer number
+            if (entityType === 'Pelanggan' && !entityId) {
+                const customerNumberInput = formContent.querySelector('input[name="customerNumber"]');
+                
+                if (customerNumberInput && settings.autoGenerateNumber) {
+                    const now = new Date();
+                    const year = now.getFullYear();
+                    const month = String(now.getMonth() + 1).padStart(2, '0');
+                    
+                    // Hitung urutan untuk bulan ini
+                    const thisMonthCustomers = dataCache.Pelanggan.filter(p => {
+                        const pDate = new Date(p.createdAt);
+                        return pDate.getFullYear() === year && pDate.getMonth() === now.getMonth();
+                    });
+                    
+                    const seq = String(thisMonthCustomers.length + 1).padStart(3, '0');
+                    customerNumberInput.value = settings.numberFormat
+                        .replace('{YYYY}', year)
+                        .replace('{MM}', month)
+                        .replace('{SEQ}', seq);
+                }
+            }
         }
 
         function getGpsLocation() {
@@ -3046,20 +3131,20 @@
                 fields = `
                     <div class="md:col-span-2">
                         <label class="block text-sm font-medium text-gray-700 mb-1">OLT *</label>
-                        <input type="text" name="code" value="${entity?.code || ''}" placeholder="GPON / EPON" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                        <input type="text" name="code" value="${entity?.code || ''}" placeholder="GPON / EPON" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 uppercase" required>
                     </div>
                     <div class="md:col-span-2">
                         <label class="block text-sm font-medium text-gray-700 mb-1">Type OLT *</label>
-                        <input type="text" name="name" value="${entity?.name || ''}" placeholder="ZTE / HWI / EPON" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                        <input type="text" name="name" value="${entity?.name || ''}" placeholder="ZTE / HWI / EPON" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 uppercase" required>
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Model *</label>
-                        <input type="text" name="model" value="${entity?.model || ''}" placeholder="Huawei MA5608T" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                        <input type="text" name="model" value="${entity?.model || ''}" placeholder="Huawei MA5608T" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 uppercase" required>
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Serial Number *</label>
                         <div class="flex space-x-2">
-                            <input type="text" name="sn" value="${entity?.sn || ''}" placeholder="HWTX123456789" class="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                            <input type="text" name="sn" value="${entity?.sn || ''}" placeholder="HWTX123456789" class="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 uppercase" required>
                             <button type="button" id="scan-sn-btn" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 flex items-center space-x-2">
                                 <i data-lucide="camera" class="w-4 h-4"></i>
                                 <span>Scan</span>
@@ -3068,7 +3153,7 @@
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Rak *</label>
-                        <input type="text" name="rack" value="${entity?.rack || ''}" placeholder="Rack A-01" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                        <input type="text" name="rack" value="${entity?.rack || ''}" placeholder="Rack A-01" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 uppercase" required>
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Jumlah Slot *</label>
@@ -3105,17 +3190,17 @@
                 fields = `
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Kode Wilayah *</label>
-                        <input type="text" name="kodeWilayah" value="${entity?.kodeWilayah || ''}" placeholder="SBY" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                        <input type="text" name="kodeWilayah" value="${entity?.kodeWilayah || ''}" placeholder="SBY" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 uppercase" required>
                         <p class="placeholder-help">Contoh: SBY, MLG, LMJ</p>
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Kode Sektor *</label>
-                        <input type="text" name="kodeSektor" value="${entity?.kodeSektor || ''}" placeholder="FA" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                        <input type="text" name="kodeSektor" value="${entity?.kodeSektor || ''}" placeholder="FA" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 uppercase" required>
                         <p class="placeholder-help">Contoh: FA, FB, FC</p>
                     </div>
                     <div class="md:col-span-2">
                         <label class="block text-sm font-medium text-gray-700 mb-1">Nama ODC *</label>
-                        <input type="text" name="namaODC" value="${entity?.namaODC || ''}" placeholder="ODC-SBY-FA" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                        <input type="text" name="namaODC" value="${entity?.namaODC || ''}" placeholder="ODC-SBY-FA" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 uppercase" required>
                         <p class="placeholder-help">Format: ODC-{Wilayah}-{Sektor}</p>
                     </div>
                     <div class="md:col-span-2">
@@ -3139,11 +3224,19 @@
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Panel Feeder *</label>
-                        <input type="text" name="panelFeeder" value="${entity?.panelFeeder || ''}" placeholder="PF-01" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                        <input type="text" name="panelFeeder" value="${entity?.panelFeeder || ''}" placeholder="PF-01" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 uppercase" required>
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Port Feeder *</label>
                         <input type="number" name="portFeeder" value="${entity?.portFeeder || 1}" min="1" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Panel Distribusi *</label>
+                        <input type="text" name="panelDistribusi" value="${entity?.panelDistribusi || ''}" placeholder="PD-01" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 uppercase" required>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Port Distribusi *</label>
+                        <input type="number" name="portDistribusi" value="${entity?.portDistribusi || 1}" min="1" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
                     </div>
                     <div class="md:col-span-2 border-t pt-4 mt-2">
                         <label class="block text-sm font-medium text-gray-700 mb-2">Lokasi GPS</label>
@@ -3172,12 +3265,12 @@
                 fields = `
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Kode Wilayah *</label>
-                        <input type="text" name="kodeWilayah" value="${entity?.kodeWilayah || ''}" placeholder="SBY" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                        <input type="text" name="kodeWilayah" value="${entity?.kodeWilayah || ''}" placeholder="SBY" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 uppercase" required>
                         <p class="placeholder-help">Contoh: SBY, MLG, LMJ</p>
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Sektor ODP *</label>
-                        <input type="text" name="kodeSektor" value="${entity?.kodeSektor || ''}" placeholder="FA" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                        <input type="text" name="kodeSektor" value="${entity?.kodeSektor || ''}" placeholder="FA" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 uppercase" required>
                         <p class="placeholder-help">Contoh: FA, FB, FC</p>
                     </div>
                     <div>
@@ -3187,8 +3280,8 @@
                     </div>
                     <div class="md:col-span-2">
                         <label class="block text-sm font-medium text-gray-700 mb-1">Nama ODP *</label>
-                        <input type="text" name="namaODP" value="${entity?.namaODP || ''}" placeholder="ODP-SBY-FA/001" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
-                        <p class="placeholder-help">Format: ODP-{Wilayah}-{Sektor}-{Nomor}</p>
+                        <input type="text" name="namaODP" value="${entity?.namaODP || ''}" placeholder="ODP-SBY-FA/001" class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100" readonly>
+                        <p class="placeholder-help">Format: ODP-{Wilayah}-{Sektor}-{Nomor} (auto-generate)</p>
                     </div>
                     <div class="md:col-span-2">
                         <label class="block text-sm font-medium text-gray-700 mb-1">ODC *</label>
@@ -3199,7 +3292,7 @@
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Panel Feeder *</label>
-                        <input type="text" name="panelFeeder" value="${entity?.panelFeeder || ''}" placeholder="PF-01" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                        <input type="text" name="panelFeeder" value="${entity?.panelFeeder || ''}" placeholder="PF-01" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 uppercase" required>
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Port Feeder *</label>
@@ -3207,7 +3300,7 @@
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Panel Distribusi *</label>
-                        <input type="text" name="panelDistribusi" value="${entity?.panelDistribusi || ''}" placeholder="PD-01" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                        <input type="text" name="panelDistribusi" value="${entity?.panelDistribusi || ''}" placeholder="PD-01" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 uppercase" required>
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Port Distribusi *</label>
@@ -3245,9 +3338,10 @@
                     </div>
                 `;
             } else if (entityType === 'Pelanggan') {
-                const odpOptions = dataCache.ODP.map(odp => 
-                    `<option value="${odp.id}" ${entity?.odpRef === odp.id ? 'selected' : ''}>${odp.namaODP} (${getOdpCapacity(odp).used}/${odp.totalPorts})</option>`
-                ).join('');
+                const odpOptions = dataCache.ODP.map(odp => {
+                    const capacity = getOdpCapacity(odp);
+                    return `<option value="${odp.id}" ${entity?.odpRef === odp.id ? 'selected' : ''}>${odp.namaODP} (${capacity.used}/${odp.totalPorts})</option>`;
+                }).join('');
                 
                 const paketOptions = dataCache.Paket.map(paket => 
                     `<option value="${paket.id}" ${entity?.paketRef === paket.id ? 'selected' : ''}>${paket.jenis} - ${paket.kecepatan}</option>`
@@ -3278,16 +3372,16 @@
                 fields = `
                     <div class="md:col-span-2">
                         <label class="block text-sm font-medium text-gray-700 mb-1">Nomor Pelanggan *</label>
-                        <input type="text" name="customerNumber" id="customerNumber" value="${customerNumber}" placeholder="PLG-2024-01-001" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                        <input type="text" name="customerNumber" id="customerNumber" value="${customerNumber}" placeholder="PLG-2024-01-001" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 uppercase" required>
                         ${autoGenerate ? '<p class="text-xs text-green-600 mt-1">Nomor di-generate otomatis</p>' : ''}
                     </div>
                     <div class="md:col-span-2">
                         <label class="block text-sm font-medium text-gray-700 mb-1">Nama Lengkap *</label>
-                        <input type="text" name="name" value="${entity?.name || ''}" placeholder="Budi Santoso" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                        <input type="text" name="name" value="${entity?.name || ''}" placeholder="Budi Santoso" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 uppercase" required>
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Username *</label>
-                        <input type="text" name="username" value="${entity?.username || ''}" placeholder="budi123" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                        <input type="text" name="username" value="${entity?.username || ''}" placeholder="budi123" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 lowercase" required>
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Password *</label>
@@ -3315,11 +3409,12 @@
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Port ODP *</label>
                         <input type="number" name="odpPort" value="${entity?.odpPort || ''}" min="1" max="32" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                        <p class="text-xs text-gray-500 mt-1">Port yang tersedia akan ditampilkan di sini</p>
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Jenis ONT</label>
                         <div class="flex space-x-2">
-                            <input type="text" name="jenisONT" id="jenisONT" value="${entity?.jenisONT || ''}" placeholder="HG8245H" class="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <input type="text" name="jenisONT" id="jenisONT" value="${entity?.jenisONT || ''}" placeholder="HG8245H" class="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 uppercase">
                             <button type="button" id="scan-sn-btn" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 flex items-center space-x-2">
                                 <i data-lucide="camera" class="w-4 h-4"></i>
                                 <span>Scan</span>
@@ -3328,7 +3423,7 @@
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">SN ONT</label>
-                        <input type="text" name="snONT" id="snONT" value="${entity?.snONT || ''}" placeholder="ONT123456789" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <input type="text" name="snONT" id="snONT" value="${entity?.snONT || ''}" placeholder="ONT123456789" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 uppercase">
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">IP Address</label>
@@ -3365,7 +3460,7 @@
                 fields = `
                     <div class="md:col-span-2">
                         <label class="block text-sm font-medium text-gray-700 mb-1">Jenis Paket *</label>
-                        <input type="text" name="jenis" value="${entity?.jenis || ''}" placeholder="Basic" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                        <input type="text" name="jenis" value="${entity?.jenis || ''}" placeholder="Basic" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 uppercase" required>
                     </div>
                     <div class="md:col-span-2">
                         <label class="block text-sm font-medium text-gray-700 mb-1">Kecepatan *</label>
@@ -3383,11 +3478,11 @@
                 fields = `
                     <div class="md:col-span-2">
                         <label class="block text-sm font-medium text-gray-700 mb-1">Nama Lengkap *</label>
-                        <input type="text" name="nama" value="${entity?.nama || ''}" placeholder="Ahmad Fauzi" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" ${isDemo && !entityId ? 'disabled' : ''} required>
+                        <input type="text" name="nama" value="${entity?.nama || ''}" placeholder="Ahmad Fauzi" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 uppercase" ${isDemo && !entityId ? 'disabled' : ''} required>
                     </div>
                     <div class="md:col-span-2">
                         <label class="block text-sm font-medium text-gray-700 mb-1">Email *</label>
-                        <input type="email" name="email" value="${entity?.email || ''}" placeholder="ahmad@ftth.com" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" ${isDemo && !entityId ? 'disabled' : ''} required>
+                        <input type="email" name="email" value="${entity?.email || ''}" placeholder="ahmad@ftth.com" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 lowercase" ${isDemo && !entityId ? 'disabled' : ''} required>
                     </div>
                     <div class="md:col-span-2">
                         <label class="block text-sm font-medium text-gray-700 mb-1">Role *</label>
@@ -3440,6 +3535,36 @@
                 const formData = new FormData(entityForm);
                 const data = Object.fromEntries(formData.entries());
                 
+                // Convert to uppercase for specific fields
+                if (entityType === 'OLT') {
+                    data.code = data.code ? data.code.toUpperCase() : '';
+                    data.name = data.name ? data.name.toUpperCase() : '';
+                    data.model = data.model ? data.model.toUpperCase() : '';
+                    data.sn = data.sn ? data.sn.toUpperCase() : '';
+                    data.rack = data.rack ? data.rack.toUpperCase() : '';
+                } else if (entityType === 'ODC') {
+                    data.kodeWilayah = data.kodeWilayah ? data.kodeWilayah.toUpperCase() : '';
+                    data.kodeSektor = data.kodeSektor ? data.kodeSektor.toUpperCase() : '';
+                    data.namaODC = data.namaODC ? data.namaODC.toUpperCase() : '';
+                    data.panelFeeder = data.panelFeeder ? data.panelFeeder.toUpperCase() : '';
+                    data.panelDistribusi = data.panelDistribusi ? data.panelDistribusi.toUpperCase() : '';
+                } else if (entityType === 'ODP') {
+                    data.kodeWilayah = data.kodeWilayah ? data.kodeWilayah.toUpperCase() : '';
+                    data.kodeSektor = data.kodeSektor ? data.kodeSektor.toUpperCase() : '';
+                    data.namaODP = data.namaODP ? data.namaODP.toUpperCase() : '';
+                    data.panelFeeder = data.panelFeeder ? data.panelFeeder.toUpperCase() : '';
+                    data.panelDistribusi = data.panelDistribusi ? data.panelDistribusi.toUpperCase() : '';
+                } else if (entityType === 'Pelanggan') {
+                    data.customerNumber = data.customerNumber ? data.customerNumber.toUpperCase() : '';
+                    data.name = data.name ? data.name.toUpperCase() : '';
+                    data.jenisONT = data.jenisONT ? data.jenisONT.toUpperCase() : '';
+                    data.snONT = data.snONT ? data.snONT.toUpperCase() : '';
+                } else if (entityType === 'Paket') {
+                    data.jenis = data.jenis ? data.jenis.toUpperCase() : '';
+                } else if (entityType === 'Karyawan') {
+                    data.nama = data.nama ? data.nama.toUpperCase() : '';
+                }
+                
                 // Parse nested objects
                 if (data.location && data.location.lat && data.location.lng) {
                     data.location = {
@@ -3455,12 +3580,35 @@
                     }
                 });
                 
+                // Validasi khusus untuk ODP - cek apakah ada ODC di sektor yang sama
+                if (entityType === 'ODP') {
+                    const region = data.kodeWilayah;
+                    const sector = data.kodeSektor;
+                    
+                    if (region && sector) {
+                        const matchingODC = dataCache.ODC.find(odc => 
+                            odc.kodeWilayah === region && odc.kodeSektor === sector
+                        );
+                        
+                        if (!matchingODC) {
+                            throw new Error(`Tidak ada ODC dengan wilayah ${region} dan sektor ${sector}. Tidak dapat menambah ODP di sektor ini.`);
+                        }
+                    }
+                }
+                
                 // Validasi khusus untuk Pelanggan - cek port ODP
                 if (entityType === 'Pelanggan') {
                     const odpId = data.odpRef;
                     const port = data.odpPort;
                     
                     if (odpId && port) {
+                        const odp = dataCache.ODP.find(o => o.id === odpId);
+                        const capacity = getOdpCapacity(odp);
+                        
+                        if (port > capacity.total) {
+                            throw new Error(`Port ${port} melebihi kapasitas ODP (${capacity.total})`);
+                        }
+                        
                         const existingCustomer = dataCache.Pelanggan.find(p => 
                             p.odpRef === odpId && p.odpPort === port && p.id !== entityId
                         );
@@ -3663,7 +3811,362 @@
             }
         }
 
-        // --- 8. Offline Support & Sync ---
+        // --- 8. Export & Import ---
+
+        $('export-button').addEventListener('click', () => {
+            const entityType = $('table-title').dataset.entity;
+            if (!entityType) {
+                showToast('Pilih halaman tabel terlebih dahulu', 'warning');
+                return;
+            }
+            
+            exportData(entityType);
+        });
+
+        function exportData(entityType) {
+            try {
+                const data = dataCache[entityType];
+                if (!data || data.length === 0) {
+                    showToast(`Tidak ada data ${entityType} untuk diekspor`, 'warning');
+                    return;
+                }
+                
+                // Prepare data for export
+                const exportData = data.map(item => {
+                    const exportItem = { ...item };
+                    delete exportItem.id; // Remove document ID
+                    return exportItem;
+                });
+                
+                // Create worksheet
+                const ws = XLSX.utils.json_to_sheet(exportData);
+                
+                // Create workbook
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, entityType);
+                
+                // Generate filename with timestamp
+                const timestamp = new Date().toISOString().slice(0, 10);
+                const filename = `${entityType}_${timestamp}.xlsx`;
+                
+                // Write file
+                XLSX.writeFile(wb, filename);
+                
+                showToast(`Data ${entityType} berhasil diekspor`, 'success');
+            } catch (error) {
+                console.error('Error exporting data:', error);
+                showToast(`Gagal mengekspor data ${entityType}`, 'error');
+            }
+        }
+
+        async function processImport() {
+            const fileInput = $('import-file');
+            const entityTypeSelect = $('import-entity-type');
+            const file = fileInput.files[0];
+            const entityType = entityTypeSelect.value;
+            
+            if (!file) {
+                showToast('Pilih file untuk diimport', 'warning');
+                return;
+            }
+            
+            if (!entityType) {
+                showToast('Pilih jenis entitas', 'warning');
+                return;
+            }
+            
+            try {
+                const data = await readImportFile(file);
+                
+                if (!data || data.length === 0) {
+                    showToast('File tidak mengandung data yang valid', 'warning');
+                    return;
+                }
+                
+                // Show confirmation dialog
+                const confirmed = confirm(`Apakah Anda yakin ingin mengimport ${data.length} data ${entityType}?`);
+                if (!confirmed) return;
+                
+                // Process import
+                let successCount = 0;
+                let errorCount = 0;
+                
+                for (const item of data) {
+                    try {
+                        // Add metadata
+                        item.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+                        item.createdBy = currentUser.email;
+                        
+                        await db.collection(entityType).add(item);
+                        successCount++;
+                    } catch (error) {
+                        console.error('Error importing item:', error);
+                        errorCount++;
+                    }
+                }
+                
+                // Reload data
+                await loadDataFromFirestore(entityType);
+                
+                // Refresh UI if on table page
+                if ($('table-title').dataset.entity === entityType) {
+                    renderTable(entityType, dataCache[entityType]);
+                }
+                
+                // Refresh map if entity has location
+                if (['OLT', 'ODC', 'ODP', 'Pelanggan'].includes(entityType)) {
+                    renderMarkers(entityType, dataCache[entityType]);
+                }
+                
+                // Update dashboard stats
+                updateDashboardStats();
+                
+                // Show result
+                if (errorCount === 0) {
+                    showToast(`Import ${successCount} data ${entityType} berhasil`, 'success');
+                } else {
+                    showToast(`Import selesai: ${successCount} berhasil, ${errorCount} gagal`, 'warning');
+                }
+                
+                // Close modal
+                importModal.classList.add('hidden');
+                
+                // Reset form
+                fileInput.value = '';
+                entityTypeSelect.value = '';
+                
+            } catch (error) {
+                console.error('Error processing import:', error);
+                showToast('Gagal memproses import', 'error');
+            }
+        }
+
+        function readImportFile(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                
+                reader.onload = (e) => {
+                    try {
+                        const data = new Uint8Array(e.target.result);
+                        const workbook = XLSX.read(data, { type: 'array' });
+                        
+                        // Get first worksheet
+                        const sheetName = workbook.SheetNames[0];
+                        const worksheet = workbook.Sheets[sheetName];
+                        
+                        // Convert to JSON
+                        const jsonData = XLSX.utils.sheet_to_json(worksheet);
+                        
+                        resolve(jsonData);
+                    } catch (error) {
+                        reject(error);
+                    }
+                };
+                
+                reader.onerror = () => {
+                    reject(new Error('Gagal membaca file'));
+                };
+                
+                reader.readAsArrayBuffer(file);
+            });
+        }
+
+        // --- 9. Inventory Management ---
+
+        function showInventoryModal(type) {
+            $('inventory-form-title').textContent = `Tambah ${type}`;
+            $('inventory-type').value = type;
+            inventoryModal.classList.remove('hidden');
+        }
+
+        async function saveInventoryItem(e) {
+            e.preventDefault();
+            
+            const type = $('inventory-type').value;
+            const name = $('inventory-name').value;
+            const minStock = parseInt($('inventory-min-stock').value);
+            const currentStock = parseInt($('inventory-current-stock').value);
+            
+            if (!type || !name || isNaN(minStock) || isNaN(currentStock)) {
+                showToast('Semua field harus diisi dengan benar', 'error');
+                return;
+            }
+            
+            try {
+                // Check if item already exists
+                const existingItemIndex = dataCache.Inventory.findIndex(item => 
+                    item.type === type && item.name === name
+                );
+                
+                if (existingItemIndex !== -1) {
+                    // Update existing item
+                    await db.collection('Inventory').doc(dataCache.Inventory[existingItemIndex].id).update({
+                        minStock,
+                        currentStock,
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                        updatedBy: currentUser.email
+                    });
+                    
+                    dataCache.Inventory[existingItemIndex] = {
+                        ...dataCache.Inventory[existingItemIndex],
+                        minStock,
+                        currentStock,
+                        updatedAt: new Date(),
+                        updatedBy: currentUser.email
+                    };
+                    
+                    showToast('Item inventory berhasil diperbarui', 'success');
+                } else {
+                    // Add new item
+                    await db.collection('Inventory').add({
+                        type,
+                        name,
+                        minStock,
+                        currentStock,
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                        createdBy: currentUser.email
+                    });
+                    
+                    dataCache.Inventory.push({
+                        id: 'temp-id-' + Date.now(),
+                        type,
+                        name,
+                        minStock,
+                        currentStock,
+                        createdAt: new Date(),
+                        createdBy: currentUser.email
+                    });
+                    
+                    showToast('Item inventory berhasil ditambahkan', 'success');
+                }
+                
+                // Reload inventory data
+                await loadDataFromFirestore('Inventory');
+                
+                // Refresh inventory list
+                renderInventoryList();
+                
+                // Close modal
+                inventoryModal.classList.add('hidden');
+                
+                // Reset form
+                inventoryForm.reset();
+                
+            } catch (error) {
+                console.error('Error saving inventory item:', error);
+                showToast('Gagal menyimpan item inventory', 'error');
+            }
+        }
+
+        function renderInventoryList() {
+            // Render ONT inventory
+            const ontList = $('ont-inventory-list');
+            const ontItems = dataCache.Inventory.filter(item => item.type === 'ONT');
+            
+            if (ontItems.length === 0) {
+                ontList.innerHTML = '<p class="text-gray-500 text-center py-4">Tidak ada item ONT</p>';
+            } else {
+                ontList.innerHTML = ontItems.map(item => {
+                    const stockStatus = getStockStatus(item.currentStock, item.minStock);
+                    return `
+                        <div class="inventory-item">
+                            <div>
+                                <p class="font-medium">${item.name}</p>
+                                <p class="text-sm text-gray-600">Stok: ${item.currentStock} (Min: ${item.minStock})</p>
+                            </div>
+                            <div class="${stockStatus.class}">${stockStatus.text}</div>
+                        </div>
+                    `;
+                }).join('');
+            }
+            
+            // Render Cable inventory
+            const cableList = $('cable-inventory-list');
+            const cableItems = dataCache.Inventory.filter(item => item.type === 'Kabel');
+            
+            if (cableItems.length === 0) {
+                cableList.innerHTML = '<p class="text-gray-500 text-center py-4">Tidak ada item Kabel</p>';
+            } else {
+                cableList.innerHTML = cableItems.map(item => {
+                    const stockStatus = getStockStatus(item.currentStock, item.minStock);
+                    return `
+                        <div class="inventory-item">
+                            <div>
+                                <p class="font-medium">${item.name}</p>
+                                <p class="text-sm text-gray-600">Stok: ${item.currentStock} (Min: ${item.minStock})</p>
+                            </div>
+                            <div class="${stockStatus.class}">${stockStatus.text}</div>
+                        </div>
+                    `;
+                }).join('');
+            }
+            
+            // Render Splitter inventory
+            const splitterList = $('splitter-inventory-list');
+            const splitterItems = dataCache.Inventory.filter(item => item.type === 'Splitter');
+            
+            if (splitterItems.length === 0) {
+                splitterList.innerHTML = '<p class="text-gray-500 text-center py-4">Tidak ada item Splitter</p>';
+            } else {
+                splitterList.innerHTML = splitterItems.map(item => {
+                    const stockStatus = getStockStatus(item.currentStock, item.minStock);
+                    return `
+                        <div class="inventory-item">
+                            <div>
+                                <p class="font-medium">${item.name}</p>
+                                <p class="text-sm text-gray-600">Stok: ${item.currentStock} (Min: ${item.minStock})</p>
+                            </div>
+                            <div class="${stockStatus.class}">${stockStatus.text}</div>
+                        </div>
+                    `;
+                }).join('');
+            }
+            
+            // Render Material inventory
+            const materialList = $('material-inventory-list');
+            const materialItems = dataCache.Inventory.filter(item => item.type === 'Material');
+            
+            if (materialItems.length === 0) {
+                materialList.innerHTML = '<p class="text-gray-500 text-center py-4">Tidak ada item Material</p>';
+            } else {
+                materialList.innerHTML = materialItems.map(item => {
+                    const stockStatus = getStockStatus(item.currentStock, item.minStock);
+                    return `
+                        <div class="inventory-item">
+                            <div>
+                                <p class="font-medium">${item.name}</p>
+                                <p class="text-sm text-gray-600">Stok: ${item.currentStock} (Min: ${item.minStock})</p>
+                            </div>
+                            <div class="${stockStatus.class}">${stockStatus.text}</div>
+                        </div>
+                    `;
+                }).join('');
+            }
+            
+            // Render icons
+            lucide.createIcons();
+        }
+
+        function getStockStatus(currentStock, minStock) {
+            if (currentStock <= 0) {
+                return {
+                    class: 'stock-low',
+                    text: 'Habis'
+                };
+            } else if (currentStock <= minStock) {
+                return {
+                    class: 'stock-medium',
+                    text: 'Menipis'
+                };
+            } else {
+                return {
+                    class: 'stock-high',
+                    text: 'Tersedia'
+                };
+            }
+        }
+
+        // --- 10. Offline Support & Sync ---
 
         function setupOfflineSync() {
             // Deteksi status online/offline
@@ -3744,7 +4247,7 @@
             }
         }
 
-        // --- 9. Settings ---
+        // --- 11. Settings ---
 
         function loadSettings() {
             // Load settings dari localStorage
@@ -3757,11 +4260,17 @@
                 autoBackup: savedSettings.autoBackup !== undefined ? savedSettings.autoBackup : false,
                 backupTime: savedSettings.backupTime || '00:00',
                 darkMode: savedSettings.darkMode !== undefined ? savedSettings.darkMode : false,
-                language: savedSettings.language || 'id'
+                language: savedSettings.language || 'id',
+                sessionTimeout: savedSettings.sessionTimeout || 15,
+                warningTimeout: savedSettings.warningTimeout || 13
             };
             
             // Simpan settings kembali
             localStorage.setItem('appSettings', JSON.stringify(settings));
+            
+            // Update session timeout variables
+            sessionTimeoutMinutes = settings.sessionTimeout;
+            warningTimeoutMinutes = settings.warningTimeout;
         }
 
         function saveSettings() {
@@ -3787,6 +4296,10 @@
             // Apply auto backup
             $('auto-backup').checked = settings.autoBackup;
             $('backup-time').value = settings.backupTime;
+            
+            // Apply session settings
+            $('session-timeout').value = settings.sessionTimeout;
+            $('warning-timeout').value = settings.warningTimeout;
             
             // Setup backup schedule
             if (settings.autoBackup) {
@@ -3846,6 +4359,30 @@
                 
                 // Reload halaman untuk menerapkan bahasa
                 location.reload();
+            });
+            
+            // Session settings
+            $('save-session-settings').addEventListener('click', () => {
+                const sessionTimeout = parseInt($('session-timeout').value);
+                const warningTimeout = parseInt($('warning-timeout').value);
+                
+                if (warningTimeout >= sessionTimeout) {
+                    showToast('Warning timeout harus lebih kecil dari session timeout', 'error');
+                    return;
+                }
+                
+                settings.sessionTimeout = sessionTimeout;
+                settings.warningTimeout = warningTimeout;
+                saveSettings();
+                
+                // Update session timeout variables
+                sessionTimeoutMinutes = sessionTimeout;
+                warningTimeoutMinutes = warningTimeout;
+                
+                // Reset session timers
+                resetSessionTimers();
+                
+                showToast('Pengaturan sesi berhasil disimpan', 'success');
             });
             
             // Save password
@@ -3957,53 +4494,98 @@
             }
         }
 
-        // --- 10. Global Search ---
+        // --- 12. Session Management ---
 
-        function setupGlobalSearch() {
-            const searchInput = $('global-search');
+        function setupSessionManagement() {
+            // Set up event listeners for user activity
+            const events = [
+                'mousedown', 'mousemove', 'keypress', 'scroll', 
+                'touchstart', 'click', 'keydown', 'keyup'
+            ];
             
-            searchInput.addEventListener('input', (e) => {
-                const searchTerm = e.target.value.toLowerCase();
-                
-                if (searchTerm.length < 2) {
-                    // Reset search jika terlalu pendek
-                    return;
-                }
-                
-                // Cari di semua entity
-                const results = {};
-                
-                Object.keys(dataCache).forEach(entityType => {
-                    if (entityType === 'AuditLog') return; // Skip audit log
-                    
-                    const matches = dataCache[entityType].filter(item => {
-                        return Object.values(item).some(value => {
-                            if (typeof value === 'string') {
-                                return value.toLowerCase().includes(searchTerm);
-                            }
-                            return false;
-                        });
-                    });
-                    
-                    if (matches.length > 0) {
-                        results[entityType] = matches;
-                    }
-                });
-                
-                // Tampilkan hasil pencarian
-                displaySearchResults(results, searchTerm);
+            events.forEach(event => {
+                document.addEventListener(event, resetSessionTimers, true);
             });
-        }
-
-        function displaySearchResults(results, searchTerm) {
-            // Implementasi tampilan hasil pencarian
-            console.log('Search results for', searchTerm, ':', results);
             
-            // Bisa ditampilkan sebagai dropdown atau modal
-            // Untuk sekarang, hanya log ke console
+            // Set up session warning buttons
+            $('extend-session').addEventListener('click', () => {
+                hideSessionWarning();
+                resetSessionTimers();
+                showToast('Sesi diperpanjang', 'success');
+            });
+            
+            $('logout-now').addEventListener('click', () => {
+                hideSessionWarning();
+                auth.signOut();
+            });
+            
+            // Initialize session timers
+            resetSessionTimers();
         }
 
-        // --- 11. Responsif & Event Listener Lainnya ---
+        function resetSessionTimers() {
+            // Clear existing timers
+            clearTimeout(sessionTimeout);
+            clearTimeout(warningTimeout);
+            clearInterval(countdownInterval);
+            
+            // Set new warning timeout
+            warningTimeout = setTimeout(() => {
+                showSessionWarning();
+            }, warningTimeoutMinutes * 60 * 1000);
+            
+            // Set new session timeout
+            sessionTimeout = setTimeout(() => {
+                // Auto logout
+                auth.signOut();
+                showToast('Sesi berakhir karena tidak ada aktivitas', 'warning');
+            }, sessionTimeoutMinutes * 60 * 1000);
+        }
+
+        function showSessionWarning() {
+            sessionWarning.classList.remove('hidden');
+            
+            // Start countdown
+            let remainingTime = (sessionTimeoutMinutes - warningTimeoutMinutes) * 60; // in seconds
+            
+            countdownInterval = setInterval(() => {
+                remainingTime--;
+                
+                const minutes = Math.floor(remainingTime / 60);
+                const seconds = remainingTime % 60;
+                
+                $('session-countdown').textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+                
+                if (remainingTime <= 0) {
+                    clearInterval(countdownInterval);
+                    hideSessionWarning();
+                }
+            }, 1000);
+        }
+
+        function hideSessionWarning() {
+            sessionWarning.classList.add('hidden');
+            clearInterval(countdownInterval);
+        }
+
+        // --- 13. Update Current Time ---
+
+        function updateCurrentTime() {
+            const now = new Date();
+            const timeString = now.toLocaleString('id-ID', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            });
+            
+            $('current-time').textContent = timeString;
+        }
+
+        // --- 14. Responsif & Event Listener Lainnya ---
 
         window.addEventListener('resize', () => {
             if (window.innerWidth >= 640) {
