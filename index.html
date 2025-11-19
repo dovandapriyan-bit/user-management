@@ -4,6 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>FTTH Network Management System v2.0</title>
+
+    <!-- Tambahkan di HEAD, setelah Firebase scripts -->
+<script src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
+<script>
+    // Init EmailJS dengan Public Key Anda
+    emailjs.init("vbjhrBXWJrdgku8--");
+</script>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -28,11 +35,26 @@
     <!-- SheetJS untuk Excel export -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
+    <!-- ⭐⭐ TAMBAH INI ⭐⭐ -->
+<script src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
+<script>
+    emailjs.init("vbjhrBXWJrdgku8--"); // Ganti dengan Public Key Anda
+</script>
+   
     <style>
         /* Custom styles */
-        .leaflet-popup-content-wrapper { @apply rounded-lg shadow-lg border-0; }
-        .leaflet-popup-content { @apply text-sm; }
-        .leaflet-popup-tip { @apply shadow-none; }
+        .leaflet-popup-content-wrapper { 
+            border-radius: 0.5rem; /* rounded-lg */
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); /* shadow-lg */
+            border: 0; /* border-0 */
+        }
+        .leaflet-popup-content { 
+            font-size: 0.875rem; /* text-sm */
+            line-height: 1.25rem;
+        }
+        .leaflet-popup-tip { 
+            box-shadow: none; /* shadow-none */
+        }
 
         /* PERBAIKI TOMBOL TAMBAH BARU - PASTIKAN HORIZONTAL */
 #add-new-button {
@@ -127,20 +149,24 @@
         }
         
         /* Ticket status badges */
-        .status-badge {
-            @apply px-2 py-1 rounded-full text-xs font-medium;
+       .status-badge {
+        padding: 0.5rem 0.5rem; /* px-2 py-1 */
+        border-radius: 9999px; /* rounded-full */
+        font-size: 0.75rem; /* text-xs */
+        line-height: 1rem;
+        font-weight: 500; /* font-medium */
         }
-        .status-open { @apply bg-red-100 text-red-800; }
-        .status-progress { @apply bg-yellow-100 text-yellow-800; }
-        .status-pending { @apply bg-orange-100 text-orange-800; }
-        .status-closed { @apply bg-green-100 text-green-800; }
-        
+        .status-open { background-color: #FEE2E2; color: #991B1B; } /* bg-red-100 text-red-800 */
+        .status-progress { background-color: #FEF3C7; color: #92400E; } /* bg-yellow-100 text-yellow-800 */
+        .status-pending { background-color: #FED7AA; color: #9A3412; } /* bg-orange-100 text-orange-800 */
+        .status-closed { background-color: #D1FAE5; color: #065F46; } /* bg-green-100 text-green-800 */
+
         /* ONT status badges */
-        .ont-status-gudang { @apply bg-blue-100 text-blue-800; }
-        .ont-status-terpasang { @apply bg-green-100 text-green-800; }
-        .ont-status-rusak { @apply bg-red-100 text-red-800; }
-        .ont-status-ganti-ont { @apply bg-orange-100 text-orange-800; }
-        .ont-status-on-progress { @apply bg-purple-100 text-purple-800; }
+        .ont-status-gudang { background-color: #DBEAFE; color: #1E40AF; } /* bg-blue-100 text-blue-800 */
+        .ont-status-terpasang { background-color: #D1FAE5; color: #065F46; } /* bg-green-100 text-green-800 */
+        .ont-status-rusak { background-color: #FEE2E2; color: #991B1B; } /* bg-red-100 text-red-800 */
+        .ont-status-ganti-ont { background-color: #FED7AA; color: #9A3412; } /* bg-orange-100 text-orange-800 */
+        .ont-status-on-progress { background-color: #E9D5FF; color: #6B21A8; } /* bg-purple-100 text-purple-800 */
         
         /* Capacity indicators */
         .capacity-indicator {
@@ -163,29 +189,31 @@
         .ttr-overdue { background-color: #ef4444; }
         
         /* Dark mode styles */
+        /* Dark mode styles */
         body.dark-mode {
-            @apply bg-gray-900;
+            background-color: #111827; /* bg-gray-900 */
         }
         body.dark-mode .bg-white {
-            @apply bg-gray-800 text-white;
+            background-color: #1F2937; /* bg-gray-800 */
+            color: #FFFFFF; /* text-white */
         }
         body.dark-mode .bg-gray-50 {
-            @apply bg-gray-700;
+            background-color: #374151; /* bg-gray-700 */
         }
         body.dark-mode .text-gray-800 {
-            @apply text-gray-200;
+            color: #E5E7EB; /* text-gray-200 */
         }
         body.dark-mode .text-gray-700 {
-            @apply text-gray-300;
+            color: #D1D5DB; /* text-gray-300 */
         }
         body.dark-mode .text-gray-600 {
-            @apply text-gray-400;
+            color: #9CA3AF; /* text-gray-400 */
         }
         body.dark-mode .border-gray-200 {
-            @apply border-gray-700;
+            border-color: #374151; /* border-gray-700 */
         }
         body.dark-mode .border-gray-300 {
-            @apply border-gray-600;
+            border-color: #4B5563; /* border-gray-600 */
         }
         
         /* Session warning */
@@ -244,21 +272,33 @@
         }
         
         /* Form validation styles */
-        .form-error {
-            @apply text-red-500 text-xs mt-1;
-        }
+.form-error {
+    color: #EF4444; /* text-red-500 */
+    font-size: 0.75rem; /* text-xs */
+    line-height: 1rem;
+    margin-top: 0.25rem; /* mt-1 */
+}
 
-        .input-error {
-    @apply border-red-500 ring-2 ring-red-200;
+.input-error {
+    border-color: #EF4444; /* border-red-500 */
+    box-shadow: 0 0 0 2px #FEE2E2; /* ring-2 ring-red-200 */
 }
 
 .error-message {
-    @apply bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4;
+    background-color: #FEF2F2; /* bg-red-50 */
+    border: 1px solid #FECACA; /* border border-red-200 */
+    color: #B91C1C; /* text-red-700 */
+    padding: 0.75rem 1rem; /* py-3 px-4 */
+    border-radius: 0.5rem; /* rounded-lg */
+    margin-bottom: 1rem; /* mb-4 */
 }
-        
-        .form-success {
-            @apply text-green-500 text-xs mt-1;
-        }
+
+.form-success {
+    color: #10B981; /* text-green-500 */
+    font-size: 0.75rem; /* text-xs */
+    line-height: 1rem;
+    margin-top: 0.25rem; /* mt-1 */
+}
         
         /* Sidebar scroll */
         .sidebar-scroll {
@@ -267,15 +307,32 @@
         }
         
         /* Inventory status indicators */
-        .inventory-status-high { @apply bg-green-100 text-green-800; }
-        .inventory-status-medium { @apply bg-yellow-100 text-yellow-800; }
-        .inventory-status-low { @apply bg-orange-100 text-orange-800; }
-        .inventory-status-out { @apply bg-red-100 text-red-800; }
-        
-        /* Backup/Restore styles */
-        .backup-section {
-            @apply bg-white p-6 rounded-lg shadow-md mb-6;
-        }
+.inventory-status-high { background-color: #D1FAE5; color: #065F46; } /* bg-green-100 text-green-800 */
+.inventory-status-medium { background-color: #FEF3C7; color: #92400E; } /* bg-yellow-100 text-yellow-800 */
+.inventory-status-low { background-color: #FED7AA; color: #9A3412; } /* bg-orange-100 text-orange-800 */
+.inventory-status-out { background-color: #FEE2E2; color: #991B1B; } /* bg-red-100 text-red-800 */
+
+/* Backup/Restore styles */
+.backup-section {
+    background-color: #FFFFFF; /* bg-white */
+    padding: 1.5rem; /* p-6 */
+    border-radius: 0.5rem; /* rounded-lg */
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); /* shadow-md */
+    margin-bottom: 1.5rem; /* mb-6 */
+}
+
+.dashboard-card {
+    padding: 1.5rem; /* p-6 */
+    border-radius: 0.5rem; /* rounded-lg */
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); /* shadow-md */
+    transition: box-shadow 0.3s; /* transition-shadow duration-300 */
+    cursor: pointer;
+    background: linear-gradient(135deg, var(--color-from), var(--color-to)); /* Ini sudah benar */
+}
+
+.dashboard-card:hover {
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); /* hover:shadow-lg */
+}
         
         /* Toast notification styles */
         .toast-success { background-color: #10b981; }
@@ -342,9 +399,17 @@
 
         /* NEW: Enhanced dashboard cards */
         .dashboard-card {
-            @apply p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 cursor-pointer;
+            padding: 1.5rem; /* p-6 */
+            border-radius: 0.5rem; /* rounded-lg */
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); /* shadow-md */
+            transition: box-shadow 0.3s; /* transition-shadow duration-300 */
+            cursor: pointer;
             background: linear-gradient(135deg, var(--color-from), var(--color-to));
         }
+
+.dashboard-card:hover {
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); /* hover:shadow-lg */
+}
         
         /* NEW: Custom dropdown scroll */
         .dropdown-scroll {
@@ -446,7 +511,7 @@
         <!-- Sidebar -->
         <aside id="sidebar" class="fixed top-0 left-0 w-64 h-full bg-white shadow-lg z-30">
             <div class="flex items-center justify-between p-4 border-b">
-                <h1 class="text-xl font-bold text-blue-600">FTTH Network v2.0</h1>
+                <h1 class="text-xl font-bold text-blue-600">FTTH TOPOLOGY v2.0</h1>
                 <button id="sidebar-close-btn" class="sm:hidden p-1">
                     <i data-lucide="x" class="w-5 h-5"></i>
                 </button>
@@ -521,6 +586,7 @@
                             <button class="flex items-center space-x-2 p-2 rounded-full hover:bg-gray-100">
                                 <img src="https://placehold.co/40x40/E2E8F0/A0AEC0?text=U" alt="User" class="w-8 h-8 rounded-full">
                                 <div class="hidden md:block text-left">
+                                    <div id="user-name" class="text-sm font-semibold">Nama Lengkap</div>
                                     <div id="user-email" class="text-sm font-semibold">Admin FTTH</div>
                                     <div id="user-role" class="text-xs text-gray-500">Administrator</div>
                                 </div>
@@ -1296,7 +1362,7 @@
                                 <div class="border-t pt-4">
                                     <label class="block text-sm font-medium text-gray-700 mb-2">Format Nomor Internet</label>
                                     <input type="text" id="number-format" value="1000" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                                    <p class="text-xs text-gray-500 mt-1">Format: 1000, 1001, 1002 (numerik berurutan)</p>
+                                    <p class="text-xs text-gray-500 mt-1">Contoh: 1000 / 1001 / 1002 (nomer akan berurutan ketika ada pelanggan baru)</p>
                                 </div>
                                 <button id="save-number-settings" class="bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700">
                                     Simpan Pengaturan
@@ -1322,7 +1388,7 @@
                                 <div class="border-t pt-4">
                                     <label class="block text-sm font-medium text-gray-700 mb-2">Format Nomor Ticket</label>
                                     <input type="text" id="ticket-format" value="TKT-{YYYY}-{MM}-{SEQ}" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                                    <p class="text-xs text-gray-500 mt-1">Variabel: {YYYY} = Tahun, {MM} = Bulan, {SEQ} = Urutan</p>
+                                    <p class="text-xs text-gray-500 mt-1">Contoh: TC0001 / GGN0001 (Ticket akan berurutan ketika create gangguan baru)</p>
                                 </div>
                                 <button id="save-ticket-settings" class="bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700">
                                     Simpan Pengaturan
@@ -1503,7 +1569,7 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div class="md:col-span-2">
                     <label class="block text-sm font-medium text-gray-700 mb-1">Nomor Ticket *</label>
-                    <input type="text" id="ticket-number" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 uppercase" required>
+                    <input type="text" id="ticket-number" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 uppercase bg-gray-100" readonly required>
                 </div>
                 
                 <div class="md:col-span-2">
@@ -1588,7 +1654,7 @@
                 
                 <div class="md:col-span-2">
                     <label class="block text-sm font-medium text-gray-700 mb-1">Status *</label>
-                    <select id="ont-status" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                    <select id="ont-status" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"  required>
                         <option value="gudang">Gudang</option>
                         <option value="terpasang">Terpasang</option>
                         <option value="rusak">Rusak</option>
@@ -1728,6 +1794,8 @@
         </div>
     </div>
 
+       
+
     <!-- WARNING MODAL -->
     <div id="warning-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 z-50 flex items-center justify-center p-4 hidden">
         <div class="bg-white p-6 rounded-lg shadow-2xl w-full max-w-md">
@@ -1748,6 +1816,17 @@
     </div>
 
     <script>
+
+        function getRoleDisplayName(role) {
+    const roleMap = {
+        'owner': 'Owner',
+        'admin': 'Admin',
+        'teknisi': 'Petugas Lapangan',
+        'operator': 'Operator',
+        'gudang': 'Petugas Gudang'
+    };
+    return roleMap[role] || role.charAt(0).toUpperCase() + role.slice(1);
+}
         // ======================================================================
         // KONFIGURASI FIREBASE
         // ======================================================================
@@ -1763,8 +1842,14 @@
 
         // Inisialisasi Firebase
         firebase.initializeApp(firebaseConfig);
+
+        // ⭐⭐ INIT EMAILJS ⭐⭐ - TAMBAH DI SINI
+        emailjs.init("vbjhrBXWJrdgku8--"); // Ganti dengan Public Key Anda
+
         const auth = firebase.auth();
         const db = firebase.firestore();
+
+
 
         // ======================================================================
         // VARIABEL GLOBAL & STATE
@@ -1871,67 +1956,112 @@
         // AUTHENTIKASI FIREBASE
         // ======================================================================
         function setupAuthStateListener() {
-            auth.onAuthStateChanged((user) => {
-                if (user) {
-                    // User sudah login
-                    currentUser = user;
-                    userId = user.uid;
-                    
-                    // Get user role from Firestore
-                    getUserRole(user.uid).then(role => {
-                        userRole = role;
-                        
-                        // Update UI dengan info user
-                        $('user-email').textContent = user.email;
-                        $('user-role').textContent = userRole;
-                        
-                        // Apply role-based UI
-                        applyRoleBasedUI(userRole);
-                        
-                        // Sembunyikan login screen, tampilkan aplikasi
-                        loginScreen.classList.add('hidden');
-                        appLoader.classList.remove('hidden');
-                        
-                        // Inisialisasi aplikasi
-                        initAppUI();
-
-                        setupDetailModalEvents();
-
-                    });
-                } else {
-                    // User belum login
-                    currentUser = null;
-                    userId = null;
-                    userRole = null;
-                    
-                    // Tampilkan login screen, sembunyikan aplikasi
-                    loginScreen.classList.remove('hidden');
-                    appShell.classList.add('hidden');
-                    appLoader.classList.add('hidden');
-                }
-            });
-        }
-
-        async function getUserRole(uid) {
-            try {
-                const doc = await db.collection('Karyawan').doc(uid).get();
-                if (doc.exists) {
-                    return doc.data().role || 'Operator';
-                }
-                return 'Operator'; // Default role
-            } catch (error) {
-                console.error('Error getting user role:', error);
-                return 'Operator';
-            }
-        }
-
-        function applyRoleBasedUI(role) {
-            // Remove all role classes
-            appShell.classList.remove('role-admin', 'role-teknisi', 'role-operator', 'role-gudang', 'role-owner');
+    auth.onAuthStateChanged((user) => {
+        if (user) {
+            // User sudah login
+            currentUser = user;
+            userId = user.uid;
             
-            // Add current role class
-            appShell.classList.add(`role-${role.toLowerCase()}`);
+            // Get user profile from Firestore
+            getUserProfile(user.uid).then(profile => {
+                userRole = profile.role;
+                
+                // Update UI dengan info user
+                $('user-name').textContent = profile.nama;
+                $('user-email').textContent = user.email;
+                $('user-role').textContent = 
+                    profile.role === 'gudang' ? 'Petugas Gudang' :
+                    profile.role === 'teknisi' ? 'Petugas Lapangan' :
+                    profile.role.charAt(0).toUpperCase() + profile.role.slice(1);
+                
+                // Apply role-based UI
+                applyRoleBasedUI(userRole);
+                
+                // ⭐⭐ PEMBAKAN: PINDAHKAN INISIALISASI KE SINI ⭐⭐
+                // Jalankan inisialisasi HANYA setelah profil pengguna berhasil diambil
+                
+                // Sembunyikan login screen, tampilkan aplikasi
+                loginScreen.classList.add('hidden');
+                appLoader.classList.remove('hidden');
+                
+                // Inisialisasi aplikasi
+                initAppUI();
+                setupDetailModalEvents();
+                
+            }).catch(error => {
+                console.error("Gagal mengambil profil user:", error);
+                // Tampilkan pesan error jika gagal mengambil profil
+                alert("Gagal memuat data pengguna. Silakan coba lagi.");
+                auth.signOut(); // Logout user jika gagal mengambil profil
+            });
+        } else {
+            // User belum login
+            currentUser = null;
+            userId = null;
+            userRole = null;
+            
+            // Tampilkan login screen, sembunyikan aplikasi
+            loginScreen.classList.remove('hidden');
+            appShell.classList.add('hidden');
+            appLoader.classList.add('hidden');
         }
+    });
+}
+        
+
+       // ⭐⭐ FUNGSI BARU: MENGAMBIL NAMA DAN ROLE ⭐⭐
+async function getUserProfile(uid) {
+    try {
+        const doc = await db.collection('Karyawan').doc(uid).get();
+        if (doc.exists) {
+            let data = doc.data();
+            let role = (data.role || 'Operator').toLowerCase().trim();
+
+            // Normalisasi role untuk UI
+            if (role === 'petugas gudang') role = 'gudang';
+            if (role === 'petugas lapangan') role = 'teknisi';
+            
+            return {
+                nama: data.nama || 'Tidak ada nama',
+                role: role
+            };
+        }
+        return { nama: 'Tidak ada nama', role: 'operator' };
+    } catch {
+        return { nama: 'Error', role: 'operator' };
+    }
+}
+
+function applyRoleBasedUI(role) {
+    appShell.classList.remove(
+        'role-admin',
+        'role-teknisi',
+        'role-operator',
+        'role-gudang',
+        'role-owner'
+    );
+
+    appShell.classList.add(`role-${role}`);
+}
+
+// ⭐⭐ FUNGSI PENGGANTI YANG LENGKAP DAN BENAR ⭐⭐
+function updateUserRoleUI() {
+    if (currentUser) {
+        getUserProfile(currentUser.uid).then(profile => {
+            userRole = profile.role;
+            
+            // Update UI dengan info user
+            $('user-name').textContent = profile.nama;
+            $('user-email').textContent = currentUser.email;
+            $('user-role').textContent = getRoleDisplayName(profile.role);
+            
+            // Apply role-based UI
+            applyRoleBasedUI(userRole);
+        }).catch(error => {
+            console.error('Error updating role UI:', error);
+        });
+    }
+}
 
         // Event listener untuk form login
         loginForm.addEventListener('submit', async (e) => {
@@ -1983,6 +2113,45 @@
                     return 'Terjadi kesalahan saat login';
             }
         }
+
+        // ======================================================================
+// FUNGSI KIRIM EMAIL
+// ======================================================================
+// ⭐⭐ GANTI FUNGSI INI ⭐⭐
+async function sendPasswordEmail(email, nama, password, role) {
+    // ⭐⭐ VALIDASI - JIKA EMAIL KOSONG, BERHENTI ⭐⭐
+    if (!email) {
+        console.error('ERROR: Email penerima kosong');
+        return false;
+    }
+
+    // ⭐⭐ VALIDASI - PASTIKAN EMAILJS SUDAH DIMUAT ⭐⭐
+    if (typeof emailjs === 'undefined') {
+        console.error('ERROR: EmailJS library tidak dimuat dengan benar.');
+        alert('Error: Layanan email tidak tersedia. Silakan hubungi administrator.');
+        return false;
+    }
+
+    try {
+        const templateParams = {
+            to_email: email,
+            to_name: nama,
+            password: password,
+            role: role,
+            login_url: window.location.origin
+        };
+
+        console.log('Mengirim email ke:', email);
+        const response = await emailjs.send('service_oa7xsa4', 'template_qif5e7i', templateParams);
+        console.log('Email berhasil dikirim. Respon dari EmailJS:', response);
+        return true;
+    } catch (error) {
+        console.error('GAGAL kirim email. Detail Error:', error);
+        // Tampilkan error yang lebih jelas ke user
+        alert(`Gagal mengirim email ke ${email}. Silakan periksa console log (F12) untuk detail error dan pastikan konfigurasi EmailJS sudah benar.`);
+        return false;
+    }
+}
 
         // ======================================================================
         // INISIALISASI UI APLIKASI
@@ -2109,14 +2278,15 @@
             
             // Warning modal
             $('warning-cancel').addEventListener('click', () => warningModal.classList.add('hidden'));
-            $('warning-confirm').addEventListener('click', () => {
-                const callback = $('warning-confirm').dataset.callback;
-                warningModal.classList.add('hidden');
-                formHasChanges = false;
-                if (callback && window[callback]) {
-                    window[callback]();
-                }
-            });
+     $('warning-confirm').addEventListener('click', () => {
+    // Tutup warning modal
+    warningModal.classList.add('hidden');
+    
+    // TUTUP JUGA MODAL FORM EDIT YANG SEDANG TERBUKA
+    formModal.classList.add('hidden');
+    
+    formHasChanges = false;
+});
             
             // Add new button
             $('add-new-button').addEventListener('click', () => {
@@ -2218,20 +2388,27 @@
         // LOGIKA PETA (LEAFLET)
         // ======================================================================
         function initMap() {
-            map = L.map('map-container').setView([-6.2088, 106.8456], 12);
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-            }).addTo(map);
+    // ⭐⭐ PEMBAIKAN: HAPUS PETA LAMA JIKA ADA ⭐⭐
+    if (map) {
+        map.remove(); // Hapus peta lama dari memori
+        map = null; // Reset variabel map
+    }
 
-            // Tambahkan semua layer group ke peta
-            Object.values(markerLayers).forEach(layer => layer.addTo(map));
-            
-            // Setup event listeners untuk toggle layer
-            setupMapControls();
-            
-            // Setup filter controls
-            setupMapFilters();
-        }
+    // Inisialisasi peta baru
+    map = L.map('map-container').setView([-6.2088, 106.8456], 12);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    }).addTo(map);
+
+    // Tambahkan semua layer group ke peta
+    Object.values(markerLayers).forEach(layer => layer.addTo(map));
+    
+    // Setup event listeners untuk toggle layer
+    setupMapControls();
+    
+    // Setup filter controls
+    setupMapFilters();
+}
 
         function setupMapControls() {
             // Toggle OLT
@@ -2849,8 +3026,8 @@
             let headers = [];
             
             // Definisikan header tabel berdasarkan entity
-            if (entity === 'OLT') headers = ['OLT', 'Type', 'Model', 'SN', 'Rak', 'Slot/Port', 'Lokasi', 'Aksi'];
-            else if (entity === 'ODC') headers = ['Kode Wilayah', 'Kode Sektor', 'Nama ODC', 'Kapasitas', 'OLT', 'Slot/Port OLT', 'Panel Feeder', 'Panel Distribusi', 'Aksi'];
+            if (entity === 'OLT') headers = ['OLT', 'Type', 'Model', 'SN', 'Rak', 'Total Slot/Port', 'Kapasitas Slot', 'Kapasitas Port', 'Lokasi', 'Aksi'];
+            else if (entity === 'ODC') headers = ['Kode Wilayah', 'Kode Sektor', 'Nama ODC', 'Total Kapasitas', 'Terpakai', 'Tersisa', 'Utilisasi', 'OLT', 'Slot/Port OLT', 'Panel Feeder', 'Panel Distribusi', 'Aksi'];
             else if (entity === 'ODP') headers = ['Kode Wilayah', 'Kode Sektor', 'Nomor ODP', 'Nama ODP', 'Panel Feeder', 'Port Feeder', 'Panel Distribusi', 'Port Distribusi', 'Kapasitas', 'Aksi'];
             else if (entity === 'Pelanggan') headers = ['No. Pelanggan', 'Nama', 'Username', 'Paket', 'ODP', 'Port', 'Status', 'Aksi'];
             else if (entity === 'Paket') headers = ['Jenis Paket', 'Kecepatan', 'Harga', 'Aksi'];
@@ -2884,27 +3061,94 @@
                 
                 let rowHtml = '';
                 if (entity === 'OLT') {
-                    rowHtml = `
-                        <td class="px-4 py-3 text-sm text-gray-700">${item.code}</td>
-                        <td class="px-4 py-3 text-sm text-gray-700">${item.name}</td>
-                        <td class="px-4 py-3 text-sm text-gray-700">${item.model || 'N/A'}</td>
-                        <td class="px-4 py-3 text-sm text-gray-700">${item.sn || 'N/A'}</td>
-                        <td class="px-4 py-3 text-sm text-gray-700">${item.rack || 'N/A'}</td>
-                        <td class="px-4 py-3 text-sm text-gray-700">${item.totalSlots || 0} Slot / ${item.totalPorts || 0} Port</td>
-                        <td class="px-4 py-3 text-sm text-gray-700">${item.location ? `${item.location.lat.toFixed(4)}, ${item.location.lng.toFixed(4)}` : 'N/A'}</td>
-                    `;
+    // HITUNG KAPASITAS
+    const connectedODCs = dataCache.ODC.filter(odc => odc.OLTRef === item.id);
+    const usedSlots = new Set(connectedODCs.map(odc => odc.OLTSlot)).size;
+    const usedPorts = connectedODCs.length;
+    
+    const totalSlots = item.totalSlots || 0;
+    const totalPorts = item.totalPorts || 0;
+    
+    const slotPercentage = totalSlots > 0 ? (usedSlots / totalSlots) * 100 : 0;
+    const portPercentage = totalPorts > 0 ? (usedPorts / totalPorts) * 100 : 0;
+
+    rowHtml = `
+        <td class="px-4 py-3 text-sm text-gray-700">${item.code}</td>
+        <td class="px-4 py-3 text-sm text-gray-700">${item.name}</td>
+        <td class="px-4 py-3 text-sm text-gray-700">${item.model || 'N/A'}</td>
+        <td class="px-4 py-3 text-sm text-gray-700">${item.sn || 'N/A'}</td>
+        <td class="px-4 py-3 text-sm text-gray-700">${item.rack || 'N/A'}</td>
+        <td class="px-4 py-3 text-sm text-gray-700">${totalSlots} Slot / ${totalPorts} Port</td>
+        
+        <!-- KAPASITAS SLOT - PROGRESS BAR SENDIRI -->
+        <td class="px-4 py-3 text-sm">
+            <div class="flex items-center space-x-2">
+                <span class="text-xs font-medium ${slotPercentage >= 90 ? 'text-red-600' : slotPercentage >= 75 ? 'text-orange-600' : slotPercentage >= 50 ? 'text-yellow-600' : 'text-green-600'}">
+                    ${usedSlots}/${totalSlots}
+                </span>
+                <div class="flex-1 bg-gray-200 rounded-full h-2 min-w-[60px]">
+                    <div class="h-2 rounded-full ${slotPercentage >= 90 ? 'bg-red-500' : slotPercentage >= 75 ? 'bg-orange-500' : slotPercentage >= 50 ? 'bg-yellow-500' : 'bg-green-500'}" style="width: ${slotPercentage}%"></div>
+                </div>
+            </div>
+        </td>
+        
+        <!-- KAPASITAS PORT - PROGRESS BAR SENDIRI -->
+        <td class="px-4 py-3 text-sm">
+            <div class="flex items-center space-x-2">
+                <span class="text-xs font-medium ${portPercentage >= 90 ? 'text-red-600' : portPercentage >= 75 ? 'text-orange-600' : portPercentage >= 50 ? 'text-yellow-600' : 'text-green-600'}">
+                    ${usedPorts}/${totalPorts}
+                </span>
+                <div class="flex-1 bg-gray-200 rounded-full h-2 min-w-[60px]">
+                    <div class="h-2 rounded-full ${portPercentage >= 90 ? 'bg-red-500' : portPercentage >= 75 ? 'bg-orange-500' : portPercentage >= 50 ? 'bg-yellow-500' : 'bg-green-500'}" style="width: ${portPercentage}%"></div>
+                </div>
+            </div>
+        </td>
+        
+        <td class="px-4 py-3 text-sm text-gray-700">${item.location ? `${item.location.lat.toFixed(4)}, ${item.location.lng.toFixed(4)}` : 'N/A'}</td>
+    `;
+
                 } else if (entity === 'ODC') {
-                    const OLT = dataCache.OLT.find(o => o.id === item.OLTRef);
-                    rowHtml = `
-                        <td class="px-4 py-3 text-sm text-gray-700">${item.kodeWilayah}</td>
-                        <td class="px-4 py-3 text-sm text-gray-700">${item.kodeSektor}</td>
-                        <td class="px-4 py-3 text-sm text-gray-700">${item.namaODC}</td>
-                        <td class="px-4 py-3 text-sm text-gray-700">${item.capacity || 0}</td>
-                        <td class="px-4 py-3 text-sm text-gray-700">${OLT?.name || 'N/A'}</td>
-                        <td class="px-4 py-3 text-sm text-gray-700">${item.OLTSlot || 'N/A'}/${item.OLTPort || 'N/A'}</td>
-                        <td class="px-4 py-3 text-sm text-gray-700">${item.panelFeeder || 'N/A'}/${item.portFeeder || 'N/A'}</td>
-                        <td class="px-4 py-3 text-sm text-gray-700">${item.panelDistribusi || 'N/A'}/${item.portDistribusi || 'N/A'}</td>
-                    `;
+    const OLT = dataCache.OLT.find(o => o.id === item.OLTRef);
+    
+    // HITUNG KAPASITAS ODC
+    const connectedODPs = dataCache.ODP.filter(odp => odp.odcRef === item.id);
+    const usedPorts = connectedODPs.length;
+    const totalCapacity = item.capacity || 0;
+    const freePorts = totalCapacity - usedPorts;
+    const utilization = totalCapacity > 0 ? (usedPorts / totalCapacity) * 100 : 0;
+
+    rowHtml = `
+        <td class="px-4 py-3 text-sm text-gray-700">${item.kodeWilayah}</td>
+        <td class="px-4 py-3 text-sm text-gray-700">${item.kodeSektor}</td>
+        <td class="px-4 py-3 text-sm text-gray-700">${item.namaODC}</td>
+        
+        <!-- TOTAL KAPASITAS -->
+        <td class="px-4 py-3 text-sm text-gray-700">${totalCapacity} Port</td>
+        
+        <!-- TERPAKAI -->
+        <td class="px-4 py-3 text-sm text-gray-700">${usedPorts}</td>
+        
+        <!-- TERSISA -->
+        <td class="px-4 py-3 text-sm font-medium ${freePorts === 0 ? 'text-red-600' : 'text-green-600'}">${freePorts}</td>
+        
+        <!-- UTILISASI - PROGRESS BAR -->
+        <td class="px-4 py-3 text-sm">
+            <div class="flex items-center space-x-2">
+                <span class="text-xs font-medium ${utilization >= 90 ? 'text-red-600' : utilization >= 75 ? 'text-orange-600' : utilization >= 50 ? 'text-yellow-600' : 'text-green-600'}">
+                    ${utilization.toFixed(0)}%
+                </span>
+                <div class="flex-1 bg-gray-200 rounded-full h-2 min-w-[60px]">
+                    <div class="h-2 rounded-full ${utilization >= 90 ? 'bg-red-500' : utilization >= 75 ? 'bg-orange-500' : utilization >= 50 ? 'bg-yellow-500' : 'bg-green-500'}" style="width: ${utilization}%"></div>
+                </div>
+            </div>
+        </td>
+        
+        <td class="px-4 py-3 text-sm text-gray-700">${OLT?.name || 'N/A'}</td>
+        <td class="px-4 py-3 text-sm text-gray-700">${item.OLTSlot || 'N/A'}/${item.OLTPort || 'N/A'}</td>
+        <td class="px-4 py-3 text-sm text-gray-700">${item.panelFeeder || 'N/A'}/${item.portFeeder || 'N/A'}</td>
+        <td class="px-4 py-3 text-sm text-gray-700">${item.panelDistribusi || 'N/A'}/${item.portDistribusi || 'N/A'}</td>
+    `;
+
                 } else if (entity === 'ODP') {
                     const { used, total, percentage } = getOdpCapacity(item);
                     rowHtml = `
@@ -3121,137 +3365,137 @@ document.querySelectorAll('.view-btn').forEach(btn => {
         }
 
         // Render Tickets Table
-        function renderTicketsTable() {
-            const tbody = $('tickets-table-body');
-            tbody.innerHTML = '';
+       function renderTicketsTable() {
+    const tbody = $('tickets-table-body');
+    tbody.innerHTML = '';
+    
+    if (dataCache.Tickets.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="9" class="px-4 py-8 text-center text-gray-500">
+                    <div class="flex flex-col items-center">
+                        <i data-lucide="alert-triangle" class="w-12 h-12 text-gray-300 mb-2"></i>
+                        <p class="text-lg font-medium">Tidak ada data gangguan</p>
+                        <p class="text-sm">Mulai dengan membuat ticket gangguan baru</p>
+                    </div>
+                </td>
+            </tr>
+        `;
+        return;
+    }
+    
+    dataCache.Tickets.forEach(ticket => {
+        const row = document.createElement('tr');
+        row.className = 'hover:bg-gray-50';
+        
+        // Calculate duration
+        let duration = '-';
+        let ttrStatus = 'good';
+        
+        if (ticket.tanggalSelesai && ticket.tanggalLapor) {
+            const start = new Date(ticket.tanggalLapor);
+            const end = new Date(ticket.tanggalSelesai);
+            const diffMs = end - start;
+            const diffHrs = Math.floor(diffMs / (1000 * 60 * 60));
+            const diffMins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+            duration = `${diffHrs} jam ${diffMins} menit`;
             
-            if (dataCache.Tickets.length === 0) {
-                tbody.innerHTML = `
-                    <tr>
-                        <td colspan="9" class="px-4 py-8 text-center text-gray-500">
-                            <div class="flex flex-col items-center">
-                                <i data-lucide="alert-triangle" class="w-12 h-12 text-gray-300 mb-2"></i>
-                                <p class="text-lg font-medium">Tidak ada data gangguan</p>
-                                <p class="text-sm">Mulai dengan membuat ticket gangguan baru</p>
-                            </div>
-                        </td>
-                    </tr>
-                `;
-                return;
+            // Calculate TTR status
+            const totalHours = diffHrs + (diffMins / 60);
+            if (totalHours > settings.ttrMaxHours) {
+                ttrStatus = 'overdue';
+            } else if (totalHours > settings.ttrWarningHours) {
+                ttrStatus = 'warning';
             }
+        } else if (ticket.status !== 'closed' && ticket.tanggalLapor) {
+            // Calculate ongoing duration
+            const start = new Date(ticket.tanggalLapor);
+            const now = new Date();
+            const diffMs = now - start;
+            const diffHrs = Math.floor(diffMs / (1000 * 60 * 60));
+            const diffMins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+            duration = `${diffHrs} jam ${diffMins} menit`;
             
-            dataCache.Tickets.forEach(ticket => {
-                const row = document.createElement('tr');
-                row.className = 'hover:bg-gray-50';
-                
-                // Calculate duration
-                let duration = '-';
-                let ttrStatus = 'good';
-                
-                if (ticket.tanggalSelesai) {
-                    const start = new Date(ticket.tanggalLapor);
-                    const end = new Date(ticket.tanggalSelesai);
-                    const diffMs = end - start;
-                    const diffHrs = Math.floor(diffMs / (1000 * 60 * 60));
-                    const diffMins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-                    duration = `${diffHrs} jam ${diffMins} menit`;
-                    
-                    // Calculate TTR status
-                    const totalHours = diffHrs + (diffMins / 60);
-                    if (totalHours > settings.ttrMaxHours) {
-                        ttrStatus = 'overdue';
-                    } else if (totalHours > settings.ttrWarningHours) {
-                        ttrStatus = 'warning';
-                    }
-                } else if (ticket.status !== 'closed') {
-                    // Calculate ongoing duration
-                    const start = new Date(ticket.tanggalLapor);
-                    const now = new Date();
-                    const diffMs = now - start;
-                    const diffHrs = Math.floor(diffMs / (1000 * 60 * 60));
-                    const diffMins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-                    duration = `${diffHrs} jam ${diffMins} menit`;
-                    
-                    // Calculate TTR status for ongoing tickets
-                    const totalHours = diffHrs + (diffMins / 60);
-                    if (totalHours > settings.ttrMaxHours) {
-                        ttrStatus = 'overdue';
-                    } else if (totalHours > settings.ttrWarningHours) {
-                        ttrStatus = 'warning';
-                    }
-                }
-                
-                // Status badge
-                let statusClass = 'status-open';
-                let statusText = 'Open';
-                if (ticket.status === 'progress') {
-                    statusClass = 'status-progress';
-                    statusText = 'In Progress';
-                } else if (ticket.status === 'pending') {
-                    statusClass = 'status-pending';
-                    statusText = 'Pending';
-                } else if (ticket.status === 'closed') {
-                    statusClass = 'status-closed';
-                    statusText = 'Closed';
-                }
-                
-                // TTR Status indicator
-                let ttrClass = 'ttr-good';
-                let ttrText = 'Good';
-                if (ttrStatus === 'warning') {
-                    ttrClass = 'ttr-warning';
-                    ttrText = 'Warning';
-                } else if (ttrStatus === 'overdue') {
-                    ttrClass = 'ttr-overdue';
-                    ttrText = 'Overdue';
-                }
-                
-                row.innerHTML = `
-                    <td class="px-4 py-3 text-sm text-gray-700">${ticket.nomorTicket}</td>
-                    <td class="px-4 py-3 text-sm text-gray-700">${ticket.nomorInternet}</td>
-                    <td class="px-4 py-3 text-sm text-gray-700">${ticket.jenisGangguan}</td>
-                    <td class="px-4 py-3 text-sm text-gray-700">${ticket.userIdTeknisi || '-'}</td>
-                    <td class="px-4 py-3 text-sm text-gray-700">${new Date(ticket.tanggalLapor).toLocaleDateString('id-ID')}</td>
-                    <td class="px-4 py-3 text-sm">
-                        <span class="status-badge ${statusClass}">${statusText}</span>
-                    </td>
-                    <td class="px-4 py-3 text-sm text-gray-700">${duration}</td>
-                    <td class="px-4 py-3 text-sm">
-                        <span class="status-badge ${ttrClass}">${ttrText}</span>
-                    </td>
-                    <td class="px-4 py-3 text-sm">
-                        <div class="flex items-center space-x-2">
-                            <button class="edit-ticket-btn text-blue-600 hover:text-blue-800 p-1" data-id="${ticket.id}" title="Edit">
-                                <i data-lucide="edit-2" class="w-4 h-4"></i>
-                            </button>
-                            <button class="delete-ticket-btn text-red-600 hover:text-red-800 p-1" data-id="${ticket.id}" title="Hapus">
-                                <i data-lucide="trash-2" class="w-4 h-4"></i>
-                            </button>
-                        </div>
-                    </td>
-                `;
-                
-                tbody.appendChild(row);
-            });
-            
-            // Render ulang ikon
-            lucide.createIcons();
-            
-            // Setup event listeners
-            $$('.edit-ticket-btn').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    const id = btn.dataset.id;
-                    showTicketModal(id);
-                });
-            });
-            
-            $$('.delete-ticket-btn').forEach(btn => {
-                btn.addEventListener('click', () => {
-                    const id = btn.dataset.id;
-                    deleteTicket(id);
-                });
-            });
+            // Calculate TTR status for ongoing tickets
+            const totalHours = diffHrs + (diffMins / 60);
+            if (totalHours > settings.ttrMaxHours) {
+                ttrStatus = 'overdue';
+            } else if (totalHours > settings.ttrWarningHours) {
+                ttrStatus = 'warning';
+            }
         }
+        
+        // Status badge
+        let statusClass = 'status-open';
+        let statusText = 'Open';
+        if (ticket.status === 'progress') {
+            statusClass = 'status-progress';
+            statusText = 'In Progress';
+        } else if (ticket.status === 'pending') {
+            statusClass = 'status-pending';
+            statusText = 'Pending';
+        } else if (ticket.status === 'closed') {
+            statusClass = 'status-closed';
+            statusText = 'Closed';
+        }
+        
+        // TTR Status indicator
+        let ttrClass = 'ttr-good';
+        let ttrText = 'Good';
+        if (ttrStatus === 'warning') {
+            ttrClass = 'ttr-warning';
+            ttrText = 'Warning';
+        } else if (ttrStatus === 'overdue') {
+            ttrClass = 'ttr-overdue';
+            ttrText = 'Overdue';
+        }
+        
+        row.innerHTML = `
+            <td class="px-4 py-3 text-sm text-gray-700">${ticket.nomorTicket}</td>
+            <td class="px-4 py-3 text-sm text-gray-700">${ticket.nomorInternet}</td>
+            <td class="px-4 py-3 text-sm text-gray-700">${ticket.jenisGangguan}</td>
+            <td class="px-4 py-3 text-sm text-gray-700">${ticket.userIdTeknisi || '-'}</td>
+            <td class="px-4 py-3 text-sm text-gray-700">${ticket.tanggalLapor ? new Date(ticket.tanggalLapor).toLocaleString('id-ID') : '-'}</td>
+            <td class="px-4 py-3 text-sm">
+                <span class="status-badge ${statusClass}">${statusText}</span>
+            </td>
+            <td class="px-4 py-3 text-sm text-gray-700">${duration}</td>
+            <td class="px-4 py-3 text-sm">
+                <span class="status-badge ${ttrClass}">${ttrText}</span>
+            </td>
+            <td class="px-4 py-3 text-sm">
+                <div class="flex items-center space-x-2">
+                    <button class="edit-ticket-btn text-blue-600 hover:text-blue-800 p-1" data-id="${ticket.id}" title="Edit">
+                        <i data-lucide="edit-2" class="w-4 h-4"></i>
+                    </button>
+                    <button class="delete-ticket-btn text-red-600 hover:text-red-800 p-1" data-id="${ticket.id}" title="Hapus">
+                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            </td>
+        `;
+        
+        tbody.appendChild(row);
+    });
+    
+    // Render ulang ikon
+    lucide.createIcons();
+    
+    // Setup event listeners
+    $$('.edit-ticket-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const id = btn.dataset.id;
+            showTicketModal(id);
+        });
+    });
+    
+    $$('.delete-ticket-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const id = btn.dataset.id;
+            deleteTicket(id);
+        });
+    });
+}
 
         // Render ONT Table
         function renderOntTable() {
@@ -3568,6 +3812,19 @@ document.querySelectorAll('.view-btn').forEach(btn => {
             // Set judul form
             $('ticket-form-title').textContent = ticketId ? 'Edit Ticket Gangguan' : 'Buat Ticket Gangguan';
             
+            const statusSelect = $('ticket-status');
+if (userRole === 'teknisi' || userRole === 'operator') {
+    // Ganti dropdown jadi text input
+    const statusText = document.createElement('input');
+    statusText.type = 'text';
+    statusText.id = 'ticket-status';
+    statusText.className = 'w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100';
+    statusText.value = statusSelect.value;
+    statusText.readOnly = true;
+    
+    statusSelect.parentNode.replaceChild(statusText, statusSelect);
+}    
+
             // Load customer dropdown
             const customerSelect = $('ticket-customer');
             customerSelect.innerHTML = '<option value="">Pilih Pelanggan</option>';
@@ -3588,26 +3845,19 @@ document.querySelectorAll('.view-btn').forEach(btn => {
                 option.textContent = teknisi.nama;
                 teknisiSelect.appendChild(option);
             });
-            
-            // Auto-generate ticket number if needed
-            if (!ticketId && settings.autoGenerateTicket) {
-                const now = new Date();
-                const year = now.getFullYear();
-                const month = String(now.getMonth() + 1).padStart(2, '0');
-                
-                // Hitung urutan untuk bulan ini
-                const thisMonthTickets = dataCache.Tickets.filter(t => {
-                    const tDate = new Date(t.tanggalLapor);
-                    return tDate.getFullYear() === year && tDate.getMonth() === now.getMonth();
-                });
-                
-                const seq = String(thisMonthTickets.length + 1).padStart(3, '0');
-                $('ticket-number').value = settings.ticketFormat
-                    .replace('{YYYY}', year)
-                    .replace('{MM}', month)
-                    .replace('{SEQ}', seq);
-            }
-            
+        // Auto-generate ticket number if needed
+if (!ticketId && settings.autoGenerateTicket) {
+    const now = new Date();
+    
+    // Hitung total tickets untuk sequence
+    const nextNumber = dataCache.Tickets.length + 1;
+    
+    // Format: "TC0001", "TC0002", dst
+    const generatedNumber = `TC${String(nextNumber).padStart(4, '0')}`;
+    
+    console.log('Generated ticket number:', generatedNumber);
+    $('ticket-number').value = generatedNumber;
+}
             // Fill form if editing
             if (ticketId) {
                 const ticket = dataCache.Tickets.find(t => t.id === ticketId);
@@ -3620,6 +3870,20 @@ document.querySelectorAll('.view-btn').forEach(btn => {
                     $('ticket-teknisi').value = ticket.userIdTeknisi || '';
                     $('ticket-tanggal-lapor').value = new Date(ticket.tanggalLapor).toISOString().slice(0, 16);
                     $('ticket-status').value = ticket.status;
+
+                     // ⭐⭐ TARUH KODE READONLY DI SINI - SETELAH LINE DI ATAS ⭐⭐
+        const statusSelect = $('ticket-status');
+        if (userRole === 'teknisi' || userRole === 'operator') {
+            const statusText = document.createElement('input');
+            statusText.type = 'text';
+            statusText.id = 'ticket-status';
+            statusText.className = 'w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100';
+            statusText.value = statusSelect.value;
+            statusText.readOnly = true;
+            statusSelect.parentNode.replaceChild(statusText, statusSelect);
+        }
+    
+ 
                     
                     // Show/hide SN fields based on jenis gangguan
                     toggleSnFields(ticket.jenisGangguan);
@@ -4688,416 +4952,440 @@ document.querySelectorAll('.view-btn').forEach(btn => {
         }
 
         async function saveEntity() {
-            const entityType = formEntityType.value;
-            const entityId = formEntityId.value;
-            const submitButton = entityForm.querySelector('button[type="submit"]');
-            const submitSpinner = $('submit-spinner');
-            const submitText = $('submit-button-text');
+    const entityType = formEntityType.value;
+    const entityId = formEntityId.value;
+    const submitButton = entityForm.querySelector('button[type="submit"]');
+    const submitSpinner = $('submit-spinner');
+    const submitText = $('submit-button-text');
+    
+    // Tampilkan loading state
+    submitText.textContent = 'Menyimpan...';
+    submitSpinner.classList.remove('hidden');
+    submitButton.disabled = true;
+    
+    try {
+        const formData = new FormData(entityForm);
+        const data = Object.fromEntries(formData.entries());
+
+        // ⭐⭐ DEBUG - TARUH DI SINI ⭐⭐
+        console.log('🔍 DATA EMAIL:', data.email);
+        console.log('🔍 FULL DATA:', data);
+
+        // KHUSUS UNTUK KARYAWAN - BUAT FIREBASE AUTH ACCOUNT
+        if (entityType === 'Karyawan' && !entityId) {
+            // Generate random password
+            const generatedPassword = generateRandomPassword();
             
-            // Tampilkan loading state
-            submitText.textContent = 'Menyimpan...';
-            submitSpinner.classList.remove('hidden');
-            submitButton.disabled = true;
+            // Buat user di Firebase Auth
+            const userCredential = await auth.createUserWithEmailAndPassword(
+                data.email, 
+                generatedPassword
+            );
             
-            try {
-                const formData = new FormData(entityForm);
-                const data = Object.fromEntries(formData.entries());
-                
-                // Convert to uppercase for specific fields
-                if (entityType === 'OLT') {
-                    data.name = data.name ? data.name.toUpperCase() : '';
-                    data.model = data.model ? data.model.toUpperCase() : '';
-                    data.sn = data.sn ? data.sn.toUpperCase() : '';
-                    data.rack = data.rack ? data.rack.toUpperCase() : '';
-                } else if (entityType === 'ODC') {
-                    data.kodeWilayah = data.kodeWilayah ? data.kodeWilayah.toUpperCase() : '';
-                    data.kodeSektor = data.kodeSektor ? data.kodeSektor.toUpperCase() : '';
-                    data.namaODC = data.namaODC ? data.namaODC.toUpperCase() : '';
-                    data.panelFeeder = data.panelFeeder ? data.panelFeeder.toUpperCase() : '';
-                    data.panelDistribusi = data.panelDistribusi ? data.panelDistribusi.toUpperCase() : '';
-                } else if (entityType === 'ODP') {
-                    data.kodeWilayah = data.kodeWilayah ? data.kodeWilayah.toUpperCase() : '';
-                    data.kodeSektor = data.kodeSektor ? data.kodeSektor.toUpperCase() : '';
-                    data.namaODP = data.namaODP ? data.namaODP.toUpperCase() : '';
-                    data.panelFeeder = data.panelFeeder ? data.panelFeeder.toUpperCase() : '';
-                    data.panelDistribusi = data.panelDistribusi ? data.panelDistribusi.toUpperCase() : '';
-                } else if (entityType === 'Pelanggan') {
-                    data.name = data.name ? data.name.toUpperCase() : '';
-                    data.jenisONT = data.jenisONT ? data.jenisONT.toUpperCase() : '';
-                    data.snONT = data.snONT ? data.snONT.toUpperCase() : '';
-                } else if (entityType === 'Paket') {
-                    data.jenis = data.jenis ? data.jenis.toUpperCase() : '';
-                } else if (entityType === 'Karyawan') {
-                    data.nama = data.nama ? data.nama.toUpperCase() : '';
-                }
-                
-                // Parse nested objects
-                if (data.location && data.location.lat && data.location.lng) {
-                    data.location = {
-                        lat: parseFloat(data.location.lat),
-                        lng: parseFloat(data.location.lng)
-                    };
-                }
-                
-                // Parse numbers
-                Object.keys(data).forEach(key => {
-                    if (!isNaN(data[key]) && data[key] !== '') {
-                        data[key] = parseFloat(data[key]);
-                    }
-                });
-                
-                // Validasi khusus untuk ODP - cek apakah ada ODC di sektor yang sama
-                if (entityType === 'ODP') {
-                    const region = data.kodeWilayah;
-                    const sector = data.kodeSektor;
-                    
-                    if (region && sector) {
-                        const matchingODC = dataCache.ODC.find(odc => 
-                            odc.kodeWilayah === region && odc.kodeSektor === sector
-                        );
-                        
-                        if (!matchingODC) {
-                            throw new Error(`Tidak ada ODC dengan wilayah ${region} dan sektor ${sector}. Tidak dapat menambah ODP di sektor ini.`);
-                        }
-                    }
-                }
-                
-                // Validasi khusus untuk Pelanggan - cek port ODP
-                if (entityType === 'Pelanggan') {
-                    const odpId = data.odpRef;
-                    const port = data.odpPort;
-                    
-                    if (odpId && port) {
-                        const odp = dataCache.ODP.find(o => o.id === odpId);
-                        const capacity = getOdpCapacity(odp);
-                        
-                        if (port > capacity.total) {
-                            throw new Error(`Port ${port} melebihi kapasitas ODP (${capacity.total})`);
-                        }
-                        
-                        const existingCustomer = dataCache.Pelanggan.find(p => 
-                            p.odpRef === odpId && p.odpPort === port && p.id !== entityId
-                        );
-                        
-                        if (existingCustomer) {
-                            throw new Error(`Port ${port} pada ODP ini sudah terisi oleh pelanggan ${existingCustomer.name}`);
-                        }
-                    }
-                }
-                
-                // Validasi untuk ODC - cek duplikasi slot/port OLT
-                if (entityType === 'ODC') {
-                    const OLTId = data.OLTRef;
-                    const slot = data.OLTSlot;
-                    const port = data.OLTPort;
-                    
-                    if (OLTId && slot && port) {
-                        const existingODC = dataCache.ODC.find(odc => 
-                            odc.OLTRef === OLTId && 
-                            odc.OLTSlot === parseInt(slot) && 
-                            odc.OLTPort === parseInt(port) &&
-                            odc.id !== entityId
-                        );
-                        
-                        if (existingODC) {
-                            throw new Error(`Slot ${slot}/Port ${port} pada OLT ini sudah digunakan oleh ODC ${existingODC.namaODC}`);
-                        }
-                    }
-                }
-                
-                // Validasi untuk ODC - cek duplikasi panel feeder/port feeder
-                if (entityType === 'ODC') {
-                    const panelFeeder = data.panelFeeder;
-                    const portFeeder = data.portFeeder;
-                    
-                    if (panelFeeder && portFeeder) {
-                        const existingODC = dataCache.ODC.find(odc => 
-                            odc.panelFeeder === panelFeeder && 
-                            odc.portFeeder === parseInt(portFeeder) &&
-                            odc.id !== entityId
-                        );
-                        
-                        if (existingODC) {
-                            throw new Error(`Panel Feeder ${panelFeeder}/Port ${portFeeder} sudah digunakan oleh ODC ${existingODC.namaODC}`);
-                        }
-                    }
-                }
-                
-                // Validasi untuk ODC - cek port distribusi tidak melebihi kapasitas
-                if (entityType === 'ODC') {
-                    const portDistribusi = data.portDistribusi;
-                    const capacity = data.capacity;
-                    
-                    if (portDistribusi && capacity && parseInt(portDistribusi) > parseInt(capacity)) {
-                        throw new Error(`Port Distribusi (${portDistribusi}) tidak boleh melebihi kapasitas ODC (${capacity})`);
-                    }
-                }
-                
-                // Tambah timestamp dan user info
-                data.updatedAt = firebase.firestore.FieldValue.serverTimestamp();
-                data.updatedBy = currentUser?.email || 'unknown@user.com';
-                
-                if (isOnline) {
-                    if (entityId) {
-                        // Update existing document
-                        await db.collection(entityType).doc(entityId).update(data);
-                        showToast(`${entityType} berhasil diperbarui`, 'success');
-                    } else {
-                        // Add new document
-                        data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
-                        data.createdBy = currentUser?.email || 'unknown@user.com';
-                        await db.collection(entityType).add(data);
-                        showToast(`${entityType} berhasil ditambahkan`, 'success');
-                    }
-                    
-                    // Log audit
-                    await logAudit(entityId ? 'update' : 'create', entityType, entityId || 'new', data);
-                    
-                    // Reload data
-                    await loadDataFromFirestore(entityType);
-                } else {
-                    // Offline mode - save to queue
-                    if (entityId) {
-                        offlineQueue.push({
-                            action: 'update',
-                            entityType: entityType,
-                            entityId: entityId,
-                            data: data,
-                            timestamp: new Date().getTime()
-                        });
-                        showToast('Perubahan disimpan dalam antrian offline', 'warning');
-                    } else {
-                        data.createdAt = new Date();
-                        data.createdBy = currentUser?.email || 'unknown@user.com';
-                        offlineQueue.push({
-                            action: 'create',
-                            entityType: entityType,
-                            data: data,
-                            timestamp: new Date().getTime()
-                        });
-                        showToast('Data baru disimpan dalam antrian offline', 'warning');
-                    }
-                    localStorage.setItem('offlineQueue', JSON.stringify(offlineQueue));
-                    updateOfflineQueueUI();
-                }
-                
-                // Refresh UI jika di halaman tabel
-                if ($('table-title').dataset.entity === entityType) {
-                    renderTable(entityType, dataCache[entityType]);
-                }
-                
-                // Refresh peta jika entity memiliki lokasi
-                if (['OLT', 'ODC', 'ODP', 'Pelanggan'].includes(entityType)) {
-                    renderMarkers(entityType, dataCache[entityType]);
-                }
-                
-                // Update dashboard stats
-                updateDashboardStats();
-                
-                // Simpan data ke localStorage untuk mode offline
-                saveLocalData();
-                
-                // Reset form changes
-                formHasChanges = false;
-                
-                // Tutup modal
-                formModal.classList.add('hidden');
-                
-            } catch (error) {
-                console.error('Error saving entity:', error);
-                showToast(`Gagal menyimpan ${entityType}: ${error.message}`, 'error');
-            } finally {
-                // Reset loading state
-                submitText.textContent = 'Simpan';
-                submitSpinner.classList.add('hidden');
-                submitButton.disabled = false;
+            const uid = userCredential.user.uid;
+            
+            // Simpan data ke Firestore
+            data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+            data.createdBy = currentUser?.email || 'unknown@user.com';
+            await db.collection('Karyawan').doc(uid).set(data);
+            
+            // KIRIM EMAIL PASSWORD
+            await sendPasswordEmail(data.email, data.nama, generatedPassword, data.role);
+            
+            showToast('Karyawan berhasil ditambahkan dan password dikirim via email', 'success');
+        }
+
+        // ⭐⭐ PERBAIKAN: JIKA EDIT KARYAWAN DAN YANG DIEDIT ADALAH USER SENDIRI ⭐⭐
+        if (entityType === 'Karyawan' && entityId && entityId === userId) {
+            console.log('🔄 User mengedit data sendiri, memeriksa perubahan role...');
+            // Simpan role lama untuk perbandingan
+            const oldRole = userRole;
+            const newRole = data.role;
+            
+            if (oldRole !== newRole) {
+                console.log(`🔄 Role berubah dari ${oldRole} menjadi ${newRole}`);
+                // Tunggu sebentar untuk memastikan Firestore sudah update
+                setTimeout(() => {
+                    updateUserRoleUI();
+                }, 1500);
             }
         }
 
-        // Delete Ticket
-        async function deleteTicket(ticketId) {
-            if (!confirm('Apakah Anda yakin ingin menghapus ticket gangguan ini?')) return;
-            
-            try {
-                if (isOnline) {
-                    await db.collection('Tickets').doc(ticketId).delete();
-                    showToast('Ticket gangguan berhasil dihapus', 'success');
-                    
-                    // Log audit
-                    await logAudit('delete', 'Tickets', ticketId, {});
-                    
-                    // Reload data
-                    await loadDataFromFirestore('Tickets');
-                } else {
-                    // Offline mode - add to delete queue
-                    offlineQueue.push({
-                        action: 'delete',
-                        entityType: 'Tickets',
-                        entityId: ticketId,
-                        timestamp: new Date().getTime()
-                    });
-                    localStorage.setItem('offlineQueue', JSON.stringify(offlineQueue));
-                    
-                    // Remove from local cache immediately for better UX
-                    dataCache.Tickets = dataCache.Tickets.filter(item => item.id !== ticketId);
-                    
-                    updateOfflineQueueUI();
-                    showToast('Ticket dihapus dari cache lokal, akan dihapus dari server saat online', 'warning');
+        // ⭐⭐ VALIDASI: HANYA ADMIN YANG BISA EDIT ROLE/STATUS KARYAWAN ⭐⭐
+        if (entityType === 'Karyawan' && entityId) {
+            // Cek jika user mencoba mengubah role atau status
+            const oldData = dataCache.Karyawan.find(k => k.id === entityId);
+            if (oldData) {
+                const isRoleChanged = oldData.role !== data.role;
+                const isStatusChanged = oldData.status !== data.status;
+                
+                // Jika mencoba mengubah role atau status, validasi apakah user adalah admin
+                if ((isRoleChanged || isStatusChanged) && userRole !== 'Admin' && userRole !== 'Owner') {
+                    throw new Error('Hanya Admin yang dapat mengubah role atau status karyawan');
                 }
-                
-                // Refresh UI
-                renderTicketsTable();
-                updateTicketStats();
-                
-                // Simpan data ke localStorage untuk mode offline
-                saveLocalData();
-                
-            } catch (error) {
-                console.error('Error deleting ticket:', error);
-                showToast('Gagal menghapus ticket gangguan', 'error');
             }
         }
+        
+        // Convert to uppercase for specific fields
+        if (entityType === 'OLT') {
+            data.name = data.name ? data.name.toUpperCase() : '';
+            data.model = data.model ? data.model.toUpperCase() : '';
+            data.sn = data.sn ? data.sn.toUpperCase() : '';
+            data.rack = data.rack ? data.rack.toUpperCase() : '';
+        } else if (entityType === 'ODC') {
+            data.kodeWilayah = data.kodeWilayah ? data.kodeWilayah.toUpperCase() : '';
+            data.kodeSektor = data.kodeSektor ? data.kodeSektor.toUpperCase() : '';
+            data.namaODC = data.namaODC ? data.namaODC.toUpperCase() : '';
+            data.panelFeeder = data.panelFeeder ? data.panelFeeder.toUpperCase() : '';
+            data.panelDistribusi = data.panelDistribusi ? data.panelDistribusi.toUpperCase() : '';
+        } else if (entityType === 'ODP') {
+            data.kodeWilayah = data.kodeWilayah ? data.kodeWilayah.toUpperCase() : '';
+            data.kodeSektor = data.kodeSektor ? data.kodeSektor.toUpperCase() : '';
+            data.namaODP = data.namaODP ? data.namaODP.toUpperCase() : '';
+            data.panelFeeder = data.panelFeeder ? data.panelFeeder.toUpperCase() : '';
+            data.panelDistribusi = data.panelDistribusi ? data.panelDistribusi.toUpperCase() : '';
+        } else if (entityType === 'Pelanggan') {
+            data.name = data.name ? data.name.toUpperCase() : '';
+            data.jenisONT = data.jenisONT ? data.jenisONT.toUpperCase() : '';
+            data.snONT = data.snONT ? data.snONT.toUpperCase() : '';
+        } else if (entityType === 'Paket') {
+            data.jenis = data.jenis ? data.jenis.toUpperCase() : '';
+        } else if (entityType === 'Karyawan') {
+            data.nama = data.nama ? data.nama.toUpperCase() : '';
+        }
+        
+        // Parse nested objects
+        if (data.location && data.location.lat && data.location.lng) {
+            data.location = {
+                lat: parseFloat(data.location.lat),
+                lng: parseFloat(data.location.lng)
+            };
+        }
+        
+        // Parse numbers
+        Object.keys(data).forEach(key => {
+            if (!isNaN(data[key]) && data[key] !== '') {
+                data[key] = parseFloat(data[key]);
+            }
+        });
+        
+        // Validasi khusus untuk ODP - cek apakah ada ODC di sektor yang sama
+        if (entityType === 'ODP') {
+            const region = data.kodeWilayah;
+            const sector = data.kodeSektor;
+            
+            if (region && sector) {
+                const matchingODC = dataCache.ODC.find(odc => 
+                    odc.kodeWilayah === region && odc.kodeSektor === sector
+                );
+                
+                if (!matchingODC) {
+                    throw new Error(`Tidak ada ODC dengan wilayah ${region} dan sektor ${sector}. Tidak dapat menambah ODP di sektor ini.`);
+                }
+            }
+        }
+        
+        // Validasi khusus untuk Pelanggan - cek port ODP
+        if (entityType === 'Pelanggan') {
+            const odpId = data.odpRef;
+            const port = data.odpPort;
+            
+            if (odpId && port) {
+                const odp = dataCache.ODP.find(o => o.id === odpId);
+                const capacity = getOdpCapacity(odp);
+                
+                if (port > capacity.total) {
+                    throw new Error(`Port ${port} melebihi kapasitas ODP (${capacity.total})`);
+                }
+                
+                const existingCustomer = dataCache.Pelanggan.find(p => 
+                    p.odpRef === odpId && p.odpPort === port && p.id !== entityId
+                );
+                
+                if (existingCustomer) {
+                    throw new Error(`Port ${port} pada ODP ini sudah terisi oleh pelanggan ${existingCustomer.name}`);
+                }
+            }
+        }
+        
+        // Validasi untuk ODC - cek duplikasi slot/port OLT
+        if (entityType === 'ODC') {
+            const OLTId = data.OLTRef;
+            const slot = data.OLTSlot;
+            const port = data.OLTPort;
+            
+            if (OLTId && slot && port) {
+                const existingODC = dataCache.ODC.find(odc => 
+                    odc.OLTRef === OLTId && 
+                    odc.OLTSlot === parseInt(slot) && 
+                    odc.OLTPort === parseInt(port) &&
+                    odc.id !== entityId
+                );
+                
+                if (existingODC) {
+                    throw new Error(`Slot ${slot}/Port ${port} pada OLT ini sudah digunakan oleh ODC ${existingODC.namaODC}`);
+                }
+            }
+        }
+        
+        // Validasi untuk ODC - cek duplikasi panel feeder/port feeder
+        if (entityType === 'ODC') {
+            const panelFeeder = data.panelFeeder;
+            const portFeeder = data.portFeeder;
+            
+            if (panelFeeder && portFeeder) {
+                const existingODC = dataCache.ODC.find(odc => 
+                    odc.panelFeeder === panelFeeder && 
+                    odc.portFeeder === parseInt(portFeeder) &&
+                    odc.id !== entityId
+                );
+                
+                if (existingODC) {
+                    throw new Error(`Panel Feeder ${panelFeeder}/Port ${portFeeder} sudah digunakan oleh ODC ${existingODC.namaODC}`);
+                }
+            }
+        }
+        
+        // Validasi untuk ODC - cek port distribusi tidak melebihi kapasitas
+        if (entityType === 'ODC') {
+            const portDistribusi = data.portDistribusi;
+            const capacity = data.capacity;
+            
+            if (portDistribusi && capacity && parseInt(portDistribusi) > parseInt(capacity)) {
+                throw new Error(`Port Distribusi (${portDistribusi}) tidak boleh melebihi kapasitas ODC (${capacity})`);
+            }
+        }
+
+        // Validasi khusus untuk EDIT ODC
+        if (entityType === 'ODC' && entityId) {
+            const OLTId = data.OLTRef;
+            const slot = data.OLTSlot;
+            const port = data.OLTPort;
+            
+            if (OLTId && slot && port) {
+                const selectedOLT = dataCache.OLT.find(olt => olt.id === OLTId);
+                if (selectedOLT) {
+                    if (parseInt(slot) > parseInt(selectedOLT.totalSlots)) {
+                        throw new Error(`Slot ${slot} melebihi kapasitas OLT ${selectedOLT.code} (maks: ${selectedOLT.totalSlots})`);
+                    }
+                    if (parseInt(port) > parseInt(selectedOLT.totalPorts)) {
+                        throw new Error(`Port ${port} melebihi kapasitas OLT ${selectedOLT.code} (maks: ${selectedOLT.totalPorts})`);
+                    }
+                }
+            }
+        }
+        
+        // Tambah timestamp dan user info
+        data.updatedAt = firebase.firestore.FieldValue.serverTimestamp();
+        data.updatedBy = currentUser?.email || 'unknown@user.com';
+        
+        if (isOnline) {
+            if (entityId) {
+                // Update existing entity
+                await db.collection(entityType).doc(entityId).update(data);
+                showToast(`${entityType} berhasil diperbarui`, 'success');
+                
+                // Update local cache
+                const index = dataCache[entityType].findIndex(item => item.id === entityId);
+                if (index !== -1) {
+                    dataCache[entityType][index] = { ...dataCache[entityType][index], ...data };
+                }
+                
+                // Log audit
+                await logAudit('update', entityType, entityId, data);
+            } else {
+                // Add new entity
+                data.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+                data.createdBy = currentUser?.email || 'unknown@user.com';
+                const docRef = await db.collection(entityType).add(data);
+                const newId = docRef.id;
+                
+                // Update local cache
+                dataCache[entityType].push({ ...data, id: newId });
+                
+                showToast(`${entityType} berhasil ditambahkan`, 'success');
+                
+                // Log audit
+                await logAudit('create', entityType, newId, data);
+            }
+            
+            // Reload data from Firestore to ensure consistency
+            await loadDataFromFirestore(entityType);
+        } else {
+            // Offline mode - save to queue
+            if (entityId) {
+                offlineQueue.push({
+                    action: 'update',
+                    entityType: entityType,
+                    entityId: entityId,
+                    data: data,
+                    timestamp: new Date().getTime()
+                });
+                showToast('Perubahan disimpan dalam antrian offline', 'warning');
+            } else {
+                data.createdAt = new Date();
+                data.createdBy = currentUser?.email || 'unknown@user.com';
+                offlineQueue.push({
+                    action: 'create',
+                    entityType: entityType,
+                    data: data,
+                    timestamp: new Date().getTime()
+                });
+                showToast('Data baru disimpan dalam antrian offline', 'warning');
+            }
+            localStorage.setItem('offlineQueue', JSON.stringify(offlineQueue));
+            updateOfflineQueueUI();
+        }
+        
+        // Update UI
+        if ($('table-title').dataset.entity === entityType) {
+            renderTable(entityType, dataCache[entityType]);
+        }
+        
+        if (['OLT', 'ODC', 'ODP', 'Pelanggan'].includes(entityType)) {
+            renderMarkers(entityType, dataCache[entityType]);
+        }
+        
+        updateDashboardStats();
+        
+        // Save data to localStorage for offline mode
+        saveLocalData();
+        
+        // Close modal
+        formModal.classList.add('hidden');
+        formHasChanges = false;
+        
+    } catch (error) {
+        console.error('Error saving entity:', error);
+        showToast(`Gagal menyimpan ${entityType}: ${error.message}`, 'error');
+    } finally {
+        // Reset loading state
+        submitText.textContent = 'Simpan';
+        submitSpinner.classList.add('hidden');
+        submitButton.disabled = false;
+    }
+}
+
+    
+        // Delete Ticket
+        // ⭐⭐ GANTI FUNGSI INI SEPENUHNYA ⭐⭐
+async function deleteTicket(ticketId) {
+    if (!confirm('Hapus ticket ini?')) return;
+    
+    // 1. HAPUS DARI UI & CACHE SEKARANG JUGA
+    dataCache.Tickets = dataCache.Tickets.filter(item => item.id !== ticketId);
+    
+    // 2. REFRESH UI IMMEDIATE
+    renderTicketsTable();
+    updateTicketStats();
+    
+    showToast('Ticket dihapus', 'success');
+    
+    // 3. PROSES FIREBASE DI BACKGROUND
+    if (isOnline) {
+        db.collection('Tickets').doc(ticketId).delete().catch(e => {
+            console.error('Gagal hapus ticket dari server:', e);
+        });
+    } else {
+        offlineQueue.push({
+            action: 'delete',
+            entityType: 'Tickets',
+            entityId: ticketId,
+            timestamp: Date.now()
+        });
+        localStorage.setItem('offlineQueue', JSON.stringify(offlineQueue));
+    }
+}
 
         // Delete ONT
-        async function deleteOnt(ontId) {
-            if (!confirm('Apakah Anda yakin ingin menghapus data ONT tracking ini?')) return;
-            
-            try {
-                if (isOnline) {
-                    await db.collection('ONTTracking').doc(ontId).delete();
-                    showToast('ONT tracking berhasil dihapus', 'success');
-                    
-                    // Log audit
-                    await logAudit('delete', 'ONTTracking', ontId, {});
-                    
-                    // Reload data
-                    await loadDataFromFirestore('ONTTracking');
-                } else {
-                    // Offline mode - add to delete queue
-                    offlineQueue.push({
-                        action: 'delete',
-                        entityType: 'ONTTracking',
-                        entityId: ontId,
-                        timestamp: new Date().getTime()
-                    });
-                    localStorage.setItem('offlineQueue', JSON.stringify(offlineQueue));
-                    
-                    // Remove from local cache immediately for better UX
-                    dataCache.ONTTracking = dataCache.ONTTracking.filter(item => item.id !== ontId);
-                    
-                    updateOfflineQueueUI();
-                    showToast('ONT dihapus dari cache lokal, akan dihapus dari server saat online', 'warning');
-                }
-                
-                // Refresh UI
-                renderOntTable();
-                updateOntStats();
-                
-                // Simpan data ke localStorage untuk mode offline
-                saveLocalData();
-                
-            } catch (error) {
-                console.error('Error deleting ONT:', error);
-                showToast('Gagal menghapus ONT tracking', 'error');
-            }
-        }
+        // ⭐⭐ GANTI FUNGSI INI SEPENUHNYA ⭐⭐
+async function deleteOnt(ontId) {
+    if (!confirm('Hapus ONT ini?')) return;
+    
+    // 1. HAPUS DARI UI & CACHE SEKARANG JUGA
+    dataCache.ONTTracking = dataCache.ONTTracking.filter(item => item.id !== ontId);
+    
+    // 2. REFRESH UI IMMEDIATE
+    renderOntTable();
+    updateOntStats();
+    
+    showToast('ONT dihapus', 'success');
+    
+    // 3. PROSES FIREBASE DI BACKGROUND
+    if (isOnline) {
+        db.collection('ONTTracking').doc(ontId).delete().catch(e => {
+            console.error('Gagal hapus ONT dari server:', e);
+        });
+    } else {
+        offlineQueue.push({
+            action: 'delete',
+            entityType: 'ONTTracking',
+            entityId: ontId,
+            timestamp: Date.now()
+        });
+        localStorage.setItem('offlineQueue', JSON.stringify(offlineQueue));
+    }
+}
 
         // Delete Inventory
-        async function deleteInventory(inventoryId) {
-            if (!confirm('Apakah Anda yakin ingin menghapus item inventory ini?')) return;
-            
-            try {
-                if (isOnline) {
-                    await db.collection('Inventory').doc(inventoryId).delete();
-                    showToast('Item inventory berhasil dihapus', 'success');
-                    
-                    // Log audit
-                    await logAudit('delete', 'Inventory', inventoryId, {});
-                    
-                    // Reload data
-                    await loadDataFromFirestore('Inventory');
-                } else {
-                    // Offline mode - add to delete queue
-                    offlineQueue.push({
-                        action: 'delete',
-                        entityType: 'Inventory',
-                        entityId: inventoryId,
-                        timestamp: new Date().getTime()
-                    });
-                    localStorage.setItem('offlineQueue', JSON.stringify(offlineQueue));
-                    
-                    // Remove from local cache immediately for better UX
-                    dataCache.Inventory = dataCache.Inventory.filter(item => item.id !== inventoryId);
-                    
-                    updateOfflineQueueUI();
-                    showToast('Item inventory dihapus dari cache lokal, akan dihapus dari server saat online', 'warning');
-                }
-                
-                // Refresh UI
-                renderInventoryTable();
-                updateInventoryStats();
-                
-                // Simpan data ke localStorage untuk mode offline
-                saveLocalData();
-                
-            } catch (error) {
-                console.error('Error deleting inventory:', error);
-                showToast('Gagal menghapus item inventory', 'error');
-            }
-        }
+        // ⭐⭐ GANTI FUNGSI INI SEPENUHNYA ⭐⭐
+async function deleteInventory(inventoryId) {
+    if (!confirm('Hapus inventory ini?')) return;
+    
+    // 1. HAPUS DARI UI & CACHE SEKARANG JUGA
+    dataCache.Inventory = dataCache.Inventory.filter(item => item.id !== inventoryId);
+    
+    // 2. REFRESH UI IMMEDIATE
+    renderInventoryTable();
+    updateInventoryStats();
+    
+    showToast('Inventory dihapus', 'success');
+    
+    // 3. PROSES FIREBASE DI BACKGROUND
+    if (isOnline) {
+        db.collection('Inventory').doc(inventoryId).delete().catch(e => {
+            console.error('Gagal hapus inventory dari server:', e);
+        });
+    } else {
+        offlineQueue.push({
+            action: 'delete',
+            entityType: 'Inventory',
+            entityId: inventoryId,
+            timestamp: Date.now()
+        });
+        localStorage.setItem('offlineQueue', JSON.stringify(offlineQueue));
+    }
+}
 
-        async function deleteEntity(entityType, entityId) {
-            if (!confirm(`Apakah Anda yakin ingin menghapus ${entityType} ini?`)) return;
-            
-            try {
-                if (isOnline) {
-                    await db.collection(entityType).doc(entityId).delete();
-                    showToast(`${entityType} berhasil dihapus`, 'success');
-                    
-                    // Log audit
-                    await logAudit('delete', entityType, entityId, {});
-                    
-                    // Reload data
-                    await loadDataFromFirestore(entityType);
-                } else {
-                    // Offline mode - add to delete queue
-                    offlineQueue.push({
-                        action: 'delete',
-                        entityType: entityType,
-                        entityId: entityId,
-                        timestamp: new Date().getTime()
-                    });
-                    localStorage.setItem('offlineQueue', JSON.stringify(offlineQueue));
-                    
-                    // Remove from local cache immediately for better UX
-                    dataCache[entityType] = dataCache[entityType].filter(item => item.id !== entityId);
-                    
-                    updateOfflineQueueUI();
-                    showToast('Data dihapus dari cache lokal, akan dihapus dari server saat online', 'warning');
-                }
-                
-                // Refresh UI jika di halaman tabel
-                if ($('table-title').dataset.entity === entityType) {
-                    renderTable(entityType, dataCache[entityType]);
-                }
-                
-                // Refresh peta jika entity memiliki lokasi
-                if (['OLT', 'ODC', 'ODP', 'Pelanggan'].includes(entityType)) {
-                    renderMarkers(entityType, dataCache[entityType]);
-                }
-                
-                // Update dashboard stats
-                updateDashboardStats();
-                
-                // Simpan data ke localStorage untuk mode offline
-                saveLocalData();
-                
-            } catch (error) {
-                console.error('Error deleting entity:', error);
-                showToast(`Gagal menghapus ${entityType}`, 'error');
-            }
-        }
-
+        // ⭐⭐ GANTI FUNGSI INI SEPENUHNYA ⭐⭐
+async function deleteEntity(entityType, entityId) {
+    if (!confirm(`Hapus ${entityType} ini?`)) return;
+    
+    // 1. HAPUS DARI UI & CACHE SEKARANG JUGA
+    dataCache[entityType] = dataCache[entityType].filter(item => item.id !== entityId);
+    
+    // 2. REFRESH UI IMMEDIATE  
+    if ($('table-title').dataset.entity === entityType) {
+        renderTable(entityType, dataCache[entityType]);
+    }
+    
+    showToast(`${entityType} dihapus`, 'success');
+    
+    // 3. PROSES FIREBASE DI BACKGROUND (TIDAK PERLU TUNGGU)
+    if (isOnline) {
+        db.collection(entityType).doc(entityId).delete().catch(e => {
+            console.error('Gagal hapus dari server:', e);
+        });
+    } else {
+        offlineQueue.push({
+            action: 'delete',
+            entityType: entityType,
+            entityId: entityId,
+            timestamp: Date.now()
+        });
+        localStorage.setItem('offlineQueue', JSON.stringify(offlineQueue));
+    }
+}
     function showDetailModal(entityType, entityId) {
     const entity = dataCache[entityType].find(e => e.id === entityId);
     if (!entity) return;
@@ -6402,6 +6690,16 @@ document.querySelectorAll('.view-btn').forEach(btn => {
             return `${minutes}:${remainingSeconds < 10 ? '0' : ''}${remainingSeconds}`;
         }
 
+        function generateRandomPassword() {
+    const length = 12;
+    const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*";
+    let password = "";
+    for (let i = 0; i < length; i++) {
+        password += charset.charAt(Math.floor(Math.random() * charset.length));
+    }
+    return password;
+}
+
         // ======================================================================
         // UTILITY FUNCTIONS
         // ======================================================================
@@ -6461,7 +6759,7 @@ function getToastIcon(type) {
 }
     
     // Style toast - ukuran lebih kecil dan elegan
-    toast.className = `fixed top-5 right-5 z-50 ${bgColor} ${textColor} px-4 py-3 rounded-lg shadow-lg transition-all duration-300 transform translate-x-0 opacity-100`;
+    toast.className = `fixed top-5 right-5 z-50 ${bg-Color} ${textColor} px-4 py-3 rounded-lg shadow-lg transition-all duration-300 transform translate-x-0 opacity-100`;
     toast.style.minWidth = '300px';
     toast.style.maxWidth = '400px';
     
@@ -6649,6 +6947,7 @@ function getToastIcon(type) {
             processBatch();
         }
 
+
         // ======================================================================
         // SYNC OFFLINE DATA
         // ======================================================================
@@ -6666,6 +6965,7 @@ function getToastIcon(type) {
         // INITIALIZATION COMPLETE
         // ======================================================================
         console.log('FTTH Management System v2.0 initialized successfully');
+
     </script>
 </body>
 </html>
