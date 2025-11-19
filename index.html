@@ -56,21 +56,7 @@
             box-shadow: none; /* shadow-none */
         }
 
-        .sort-btn {
-    background: none;
-    border: none;
-    cursor: pointer;
-    font-size: 12px;
-    margin-left: 8px;
-    padding: 4px 8px;
-    border-radius: 4px;
-    border: 1px solid #d1d5db;
-}
-
-.sort-btn:hover {
-    background-color: #f3f4f6;
-    border-color: #9ca3af;
-}
+        
 
         /* PERBAIKI TOMBOL TAMBAH BARU - PASTIKAN HORIZONTAL */
 #add-new-button {
@@ -2951,17 +2937,26 @@ document.querySelectorAll('.sort-btn').forEach(btn => {
         }
 
         async function loadDataFromFirestore(entityType) {
-            try {
-                const snapshot = await db.collection(entityType).get();
-                dataCache[entityType] = snapshot.docs.map(doc => ({
-                    id: doc.id,
-                    ...doc.data()
-                }));
-            } catch (error) {
-                console.error(`Error loading ${entityType}:`, error);
-                dataCache[entityType] = [];
-            }
-        }
+
+    // 🛑 HEMAT READS — jika sudah punya cache, jangan baca Firebase lagi
+    if (dataCache[entityType] && dataCache[entityType].length > 0) {
+        console.log(`CACHE HIT → ${entityType}`);
+        return;
+    }
+
+    console.log(`FETCH FIREBASE → ${entityType}`);
+
+    try {
+        const snapshot = await db.collection(entityType).get();
+        dataCache[entityType] = snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+        }));
+    } catch (error) {
+        console.error(`Error loading ${entityType}:`, error);
+        dataCache[entityType] = [];
+    }
+}
 
         function loadTablePage(entity) {
             $('table-title').textContent = `Manajemen ${entity}`;
@@ -3043,6 +3038,19 @@ document.querySelectorAll('.sort-btn').forEach(btn => {
             });
         }
 
+        function sortOLT() {
+    if (!dataCache['olt']) return;
+
+    dataCache['olt'].sort((a, b) => {
+        const nameA = (a.name || '').toString().toLowerCase();
+        const nameB = (b.name || '').toString().toLowerCase();
+        return nameA.localeCompare(nameB);
+    });
+
+    renderTableData('olt');
+}
+
+
         function renderTable(entity, data) {
             const tableHeader = $('table-header-row');
             const tableBody = $('table-body');
@@ -3054,18 +3062,7 @@ document.querySelectorAll('.sort-btn').forEach(btn => {
             
             // Definisikan header tabel berdasarkan entity
             
-            if (entity === 'OLT') headers = [
-    'OLT <button class="sort-btn" data-field="code">↑↓</button>',
-    'Type',
-    'Model', 
-    'SN', 
-    'Rak', 
-    'Total Slot/Port <button class="sort-btn" data-field="totalSlots">↑↓</button>',
-    'Kapasitas Slot <button class="sort-btn" data-field="usedSlots">↑↓</button>',
-    'Kapasitas Port <button class="sort-btn" data-field="usedPorts">↑↓</button>', 
-    'Lokasi', 
-    'Aksi'
-];
+            if (entity === 'OLT') headers = ['OLT', 'Type', 'Model', 'SN', 'Rak', 'Slot/Port', 'Lokasi', 'Aksi'];
             else if (entity === 'ODC') headers = ['Kode Wilayah', 'Kode Sektor', 'Nama ODC', 'Total Kapasitas', 'Terpakai', 'Tersisa', 'Utilisasi', 'OLT', 'Type', 'Slot/Port OLT', 'Panel Feeder', 'Panel Distribusi', 'Aksi'];
             else if (entity === 'ODP') headers = ['Kode Wilayah', 'Kode Sektor', 'Nomor ODP', 'Nama ODP', 'Panel Feeder', 'Port Feeder', 'Panel Distribusi', 'Port Distribusi', 'Kapasitas', 'Aksi'];
             else if (entity === 'Pelanggan') headers = ['No. Pelanggan', 'Nama', 'Username', 'Paket', 'ODP', 'Port', 'Status', 'Aksi'];
@@ -6987,91 +6984,7 @@ function getToastIcon(type) {
             processBatch();
         }
 
-        // ======================================================================
-// SORTING UNTUK OLT
-// ======================================================================
-let currentSortOLT = { field: null, direction: 'asc' };
-
-function sortOLTTable(field) {
-    console.log('Sorting OLT by:', field);
-    
-    if (currentSortOLT.field === field) {
-        currentSortOLT.direction = currentSortOLT.direction === 'asc' ? 'desc' : 'asc';
-    } else {
-        currentSortOLT.field = field;
-        currentSortOLT.direction = 'asc';
-    }
-    
-    const data = [...dataCache.OLT];
-    
-    data.sort((a, b) => {
-        // Hitung kapasitas terpakai
-        const getUsedSlots = (olt) => {
-            const connectedODCs = dataCache.ODC.filter(odc => odc.OLTRef === olt.id);
-            return new Set(connectedODCs.map(odc => odc.OLTSlot)).size;
-        };
-        
-        const getUsedPorts = (olt) => {
-            const connectedODCs = dataCache.ODC.filter(odc => odc.OLTRef === olt.id);
-            return connectedODCs.length;
-        };
-        
-        let aVal, bVal;
-        
-        if (field === 'usedSlots') {
-            aVal = getUsedSlots(a);
-            bVal = getUsedSlots(b);
-        } else if (field === 'usedPorts') {
-            aVal = getUsedPorts(a);
-            bVal = getUsedPorts(b);
-        } else {
-            aVal = a[field] || '';
-            bVal = b[field] || '';
-        }
-        
-        // Handle string
-        if (typeof aVal === 'string') {
-            aVal = aVal.toLowerCase();
-            bVal = bVal.toLowerCase();
-        }
-        
-        // Handle empty/same values - urutkan berdasarkan nama OLT
-        if (aVal === bVal) {
-            const aCode = a.code?.toLowerCase() || '';
-            const bCode = b.code?.toLowerCase() || '';
-            return aCode.localeCompare(bCode);
-        }
-        
-        // Normal sorting
-        if (currentSortOLT.direction === 'asc') {
-            return aVal < bVal ? -1 : 1;
-        } else {
-            return aVal > bVal ? -1 : 1;
-        }
-    });
-    
-    renderTable('OLT', data);
-}
-
-// Event listener untuk header OLT
-document.addEventListener('click', function(e) {
-    const headerText = e.target.textContent;
-    const entity = document.getElementById('table-title')?.dataset.entity;
-    
-    if (entity === 'OLT' && headerText.includes('🔼🔽')) {
-        let field;
-        if (headerText.includes('OLT')) field = 'code';
-        else if (headerText.includes('Total Slot/Port')) field = 'totalSlots';
-        else if (headerText.includes('Kapasitas Slot')) field = 'usedSlots';
-        else if (headerText.includes('Kapasitas Port')) field = 'usedPorts';
-        
-        if (field) {
-            console.log('Sorting by:', field);
-            sortOLTTable(field);
-        }
-    }
-});
-
+   
 
         // ======================================================================
         // SYNC OFFLINE DATA
@@ -7086,11 +6999,12 @@ document.addEventListener('click', function(e) {
             }
         });
 
-        // ======================================================================
-        // INITIALIZATION COMPLETE
-        // ======================================================================
-        console.log('FTTH Management System v2.0 initialized successfully');
 
-    </script>
+// ======================================================================
+// INITIALIZATION COMPLETE
+// ======================================================================
+console.log('FTTH Management System v2.0 initialized successfully');
+
+</script>
 </body>
 </html>
